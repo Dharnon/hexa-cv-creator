@@ -8,6 +8,7 @@ import { StepCompetencies } from '@/components/cv/StepCompetencies';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import hexaLogo from '@/assets/hexa-logo.png';
 
 const STEPS = [
   'Información Personal',
@@ -36,9 +37,7 @@ function WizardContent() {
       <header className="border-b bg-card">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#3B82D6', color: 'white' }}>
-              H
-            </div>
+            <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
               <h1 className="text-base font-semibold text-foreground">Hexa Ingenieros</h1>
               <p className="text-xs text-muted-foreground">Generador de CV Europass</p>

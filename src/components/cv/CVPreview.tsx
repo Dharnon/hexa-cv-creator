@@ -1,4 +1,5 @@
 import { CVData } from '@/types/cv';
+import hexaLogo from '@/assets/hexa-logo.png';
 
 function formatMonth(dateStr: string): string {
   if (!dateStr) return '';
@@ -26,9 +27,9 @@ export function CVPreview({ data }: { data: CVData }) {
             <p className="text-sm font-medium" style={{ color: '#3B82D6' }}>{professionalProfile.jobTitle || 'Puesto'}</p>
           </div>
         </div>
-        <div className="text-right text-xs" style={{ color: '#3B82D6' }}>
-          <p className="font-bold text-sm">HEXA INGENIEROS</p>
-          <p className="text-[9px] text-gray-400">Europass CV</p>
+        <div className="text-right">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto ml-auto" />
+          <p className="text-[9px] text-gray-400 mt-1">Europass CV</p>
         </div>
       </div>
 
