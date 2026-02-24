@@ -15,7 +15,7 @@ export function CVPreview({ data }: { data: CVData }) {
   const sortedEdu = [...education].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
   return (
-    <div id="cv-preview" className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto shadow-lg" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.5' }}>
+    <div id="cv-preview" className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto shadow-lg flex flex-col" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.5', minHeight: '297mm' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b-2" style={{ borderColor: '#3B82D6' }}>
         <div className="flex items-center gap-4">
@@ -33,7 +33,7 @@ export function CVPreview({ data }: { data: CVData }) {
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Sidebar */}
         {personalInfo.showPersonalInfo && (
           <div className="w-52 shrink-0 p-5 bg-gray-50 border-r border-gray-200 space-y-4">
