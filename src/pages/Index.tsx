@@ -15,13 +15,13 @@ import hexaLogo from '@/assets/hexa-logo.png';
 import { useState } from 'react';
 
 const STEPS = [
-  'Información Personal',
-  'Perfil',
-  'Experiencia',
-  'Educación',
-  'Competencias',
-  'Vista Previa',
-];
+'Información Personal',
+'Perfil',
+'Experiencia',
+'Educación',
+'Competencias',
+'Vista Previa'];
+
 
 function WizardContent() {
   const { currentStep, setCurrentStep, resetData, updateData, data } = useCV();
@@ -36,13 +36,13 @@ function WizardContent() {
     }
   };
   const stepComponents = [
-    <StepPersonalInfo key={0} />,
-    <StepProfile key={1} />,
-    <StepExperience key={2} />,
-    <StepEducation key={3} />,
-    <StepCompetencies key={4} />,
-    <StepPreview key={5} />,
-  ];
+  <StepPersonalInfo key={0} />,
+  <StepProfile key={1} />,
+  <StepExperience key={2} />,
+  <StepEducation key={3} />,
+  <StepCompetencies key={4} />,
+  <StepPreview key={5} />];
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +52,7 @@ function WizardContent() {
           <div className="flex items-center gap-3">
             <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
-              <h1 className="text-base font-semibold text-foreground">Hexa Ingenieros</h1>
+              
               <p className="text-xs text-muted-foreground">Generador de CV Europass</p>
             </div>
           </div>
@@ -81,25 +81,25 @@ function WizardContent() {
           <Button
             variant="outline"
             onClick={() => setCurrentStep(currentStep - 1)}
-            disabled={currentStep === 0}
-          >
+            disabled={currentStep === 0}>
+
             <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
           </Button>
-          {currentStep < STEPS.length - 1 && (
-            <Button onClick={() => setCurrentStep(currentStep + 1)}>
+          {currentStep < STEPS.length - 1 &&
+          <Button onClick={() => setCurrentStep(currentStep + 1)}>
               Siguiente <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
-          )}
+          }
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
-const Index = () => (
-  <CVProvider>
+const Index = () =>
+<CVProvider>
     <WizardContent />
-  </CVProvider>
-);
+  </CVProvider>;
+
 
 export default Index;
