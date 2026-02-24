@@ -98,27 +98,27 @@ export function StepCompetencies() {
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="text-xs w-full">
-                  <thead>
-                    <tr className="text-muted-foreground">
-                      <th className="text-left font-medium py-1">Comprensión auditiva</th>
-                      <th className="text-left font-medium py-1">Lectura</th>
-                      <th className="text-left font-medium py-1">Interacción oral</th>
-                      <th className="text-left font-medium py-1">Expresión oral</th>
-                      <th className="text-left font-medium py-1">Escritura</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="py-1 pr-2"><LevelSelect value={lang.listening} onChange={(v) => updateLang(lang.id, 'listening', v)} /></td>
-                      <td className="py-1 pr-2"><LevelSelect value={lang.reading} onChange={(v) => updateLang(lang.id, 'reading', v)} /></td>
-                      <td className="py-1 pr-2"><LevelSelect value={lang.spokenInteraction} onChange={(v) => updateLang(lang.id, 'spokenInteraction', v)} /></td>
-                      <td className="py-1 pr-2"><LevelSelect value={lang.spokenProduction} onChange={(v) => updateLang(lang.id, 'spokenProduction', v)} /></td>
-                      <td className="py-1"><LevelSelect value={lang.writing} onChange={(v) => updateLang(lang.id, 'writing', v)} /></td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Comprensión</Label>
+                  <LevelSelect value={lang.listening} onChange={(v) => updateLang(lang.id, 'listening', v)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Lectura</Label>
+                  <LevelSelect value={lang.reading} onChange={(v) => updateLang(lang.id, 'reading', v)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Interacción oral</Label>
+                  <LevelSelect value={lang.spokenInteraction} onChange={(v) => updateLang(lang.id, 'spokenInteraction', v)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Expresión oral</Label>
+                  <LevelSelect value={lang.spokenProduction} onChange={(v) => updateLang(lang.id, 'spokenProduction', v)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Escritura</Label>
+                  <LevelSelect value={lang.writing} onChange={(v) => updateLang(lang.id, 'writing', v)} />
+                </div>
               </div>
             </CardContent>
           </Card>
