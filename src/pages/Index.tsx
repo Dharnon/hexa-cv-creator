@@ -7,8 +7,12 @@ import { StepEducation } from '@/components/cv/StepEducation';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { sampleCVData, defaultCVData } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
+import { useState } from 'react';
 
 const STEPS = [
   'Información Personal',
@@ -20,8 +24,17 @@ const STEPS = [
 ];
 
 function WizardContent() {
-  const { currentStep, setCurrentStep, resetData } = useCV();
+  const { currentStep, setCurrentStep, resetData, updateData, data } = useCV();
+  const [usingSample, setUsingSample] = useState(false);
 
+  const toggleSample = (checked: boolean) => {
+    setUsingSample(checked);
+    if (checked) {
+      updateData(sampleCVData);
+    } else {
+      updateData(defaultCVData);
+    }
+  };
   const stepComponents = [
     <StepPersonalInfo key={0} />,
     <StepProfile key={1} />,
@@ -43,9 +56,15 @@ function WizardContent() {
               <p className="text-xs text-muted-foreground">Generador de CV Europass</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={resetData}>
-            <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch checked={usingSample} onCheckedChange={toggleSample} />
+              <Label className="text-xs text-muted-foreground">Datos de ejemplo</Label>
+            </div>
+            <Button variant="ghost" size="sm" onClick={resetData}>
+              <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar
+            </Button>
+          </div>
         </div>
       </header>
 
