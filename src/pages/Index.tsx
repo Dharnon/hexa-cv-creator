@@ -8,7 +8,8 @@ import { StepEducation } from '@/components/cv/StepEducation';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, RotateCcw, Users, Shield, LogOut, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Users, Shield, LogOut, Loader2, FlaskConical } from 'lucide-react';
+import { sampleCVData } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,7 +23,7 @@ const STEPS = [
 ];
 
 function WizardContent() {
-  const { currentStep, setCurrentStep, resetData, saving, loaded } = useCV();
+  const { currentStep, setCurrentStep, resetData, saving, loaded, updateData } = useCV();
   const { signOut, isHR, isAdmin, user } = useAuth();
   const navigate = useNavigate();
 
@@ -69,6 +70,9 @@ function WizardContent() {
                 <Shield className="w-4 h-4 mr-1" /> Admin
               </Button>
             )}
+            <Button variant="ghost" size="sm" onClick={() => updateData(sampleCVData)}>
+              <FlaskConical className="w-4 h-4 mr-1" /> Demo
+            </Button>
             <Button variant="ghost" size="sm" onClick={resetData}>
               <RotateCcw className="w-4 h-4 mr-1" /> Reiniciar
             </Button>
