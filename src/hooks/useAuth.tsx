@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   roles: string[];
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, jobTitle: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   isHR: boolean;
   isAdmin: boolean;
@@ -64,18 +64,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, jobTitle: string) => {
     if (!email.endsWith('@hexaingenieros.com')) {
       return { error: 'Solo se permiten correos @hexaingenieros.com' };
     }
-    const { error } = await supabase.auth.signUp({
+    const { error, data: signUpData } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, job_title: jobTitle },
         emailRedirectTo: window.location.origin,
       },
     });
+    if (!error && signUpData.user) {
+      await supabase.from('profiles').update({ job_title: jobTitle }).eq('user_id', signUpData.user.id);
+    }
     return { error: error?.message ?? null };
   };
 

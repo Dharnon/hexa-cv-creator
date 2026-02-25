@@ -3,10 +3,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, Briefcase } from 'lucide-react';
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
@@ -14,6 +14,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -26,7 +27,7 @@ export default function Auth() {
     setLoading(true);
     const result = isLogin
       ? await signIn(email, password)
-      : await signUp(email, password, fullName);
+      : await signUp(email, password, fullName, jobTitle);
     setLoading(false);
 
     if (result.error) {
@@ -76,6 +77,25 @@ export default function Auth() {
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
                       placeholder="María García López"
+                      className="pl-10 h-11"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="jobTitle" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Puesto actual
+                  </Label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="jobTitle"
+                      value={jobTitle}
+                      onChange={e => setJobTitle(e.target.value)}
+                      placeholder="Ingeniero de Proyectos"
                       className="pl-10 h-11"
                       required
                     />

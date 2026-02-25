@@ -32,13 +32,36 @@ export function CVProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) { setData(defaultCVData); setLoaded(false); return; }
     (async () => {
+      // Load CV data
       const { data: row } = await supabase
         .from('cv_data')
         .select('data')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      // Load profile for auto-fill
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email, full_name, job_title')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
       if (row?.data) {
         setData({ ...defaultCVData, ...(row.data as unknown as CVData) });
+      } else if (profile) {
+        // Auto-fill new CV with profile data
+        setData({
+          ...defaultCVData,
+          personalInfo: {
+            ...defaultCVData.personalInfo,
+            fullName: profile.full_name || '',
+            email: profile.email || '',
+          },
+          professionalProfile: {
+            ...defaultCVData.professionalProfile,
+            jobTitle: (profile as any).job_title || '',
+          },
+        });
       }
       setLoaded(true);
     })();
