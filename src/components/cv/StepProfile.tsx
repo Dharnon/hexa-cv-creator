@@ -15,12 +15,12 @@ export function StepProfile() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-foreground">Puesto / Perfil Profesional</h2>
-        <p className="text-sm text-muted-foreground mt-1">Puesto al que aplica y resumen profesional</p>
+        <p className="text-sm text-muted-foreground mt-1">Tu puesto actual y resumen profesional</p>
       </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Puesto solicitado *</Label>
+          <Label>Puesto actual *</Label>
           <Input
             value={profile.jobTitle}
             onChange={(e) => update('jobTitle', e.target.value)}
