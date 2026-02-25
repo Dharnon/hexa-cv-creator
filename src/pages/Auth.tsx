@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, Briefcase } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Loader2, Briefcase } from 'lucide-react';
 
 export default function Auth() {
   const { signIn, signUp } = useAuth();
@@ -39,146 +37,143 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-[420px]">
-        {/* Logo */}
-        <div className="flex justify-center mb-10">
-          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-9 w-auto" />
+    <div className="min-h-screen flex">
+      {/* Left side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-muted items-center justify-center relative overflow-hidden">
+        <div className="relative z-10 flex flex-col items-center gap-8 px-12">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-12 w-auto" />
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-bold text-foreground">
+              Plataforma de Currículum
+            </h2>
+            <p className="text-muted-foreground text-sm max-w-sm">
+              Gestiona y genera tu CV profesional con la identidad corporativa de Hexa Ingenieros.
+            </p>
+          </div>
+          {/* Decorative illustration area */}
+          <div className="mt-8 w-72 h-48 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <div className="space-y-3 w-48">
+              <div className="h-3 rounded-full bg-primary/30 w-full" />
+              <div className="h-3 rounded-full bg-primary/20 w-3/4" />
+              <div className="h-3 rounded-full bg-primary/15 w-1/2" />
+              <div className="h-8 rounded-lg bg-primary/25 w-full mt-4" />
+              <div className="h-3 rounded-full bg-primary/20 w-5/6" />
+              <div className="h-3 rounded-full bg-primary/15 w-2/3" />
+            </div>
+          </div>
         </div>
+        {/* Decorative circles */}
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full border border-primary/10" />
+        <div className="absolute -bottom-32 -left-8 w-80 h-80 rounded-full border border-primary/5" />
+      </div>
 
-        {/* Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-xl font-semibold text-foreground">
-            {isLogin ? 'Iniciar sesión' : 'Crear cuenta'}
-          </h1>
-          <p className="text-muted-foreground mt-1.5 text-sm">
-            {isLogin
-              ? 'Accede con tu correo corporativo'
-              : 'Regístrate con tu correo @hexaingenieros.com'}
-          </p>
-        </div>
+      {/* Right side - Form */}
+      <div className="w-full lg:w-1/2 bg-primary flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Decorative arcs */}
+        <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full border border-primary-foreground/10" />
+        <div className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full border border-primary-foreground/5" />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {!isLogin && (
-            <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
-                Nombre completo
-              </Label>
+        <div className="w-full max-w-md bg-background rounded-2xl shadow-2xl p-8 relative z-10">
+          {/* Logo on mobile */}
+          <div className="flex lg:hidden justify-center mb-6">
+            <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-foreground">
+              {isLogin ? '¡Hola!' : '¡Bienvenido!'}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {isLogin ? 'Inicia sesión para continuar' : 'Crea tu cuenta para comenzar'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                 <Input
-                  id="fullName"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="María García López"
-                  className="pl-10 h-11 bg-background"
+                  placeholder="Nombre completo"
+                  className="pl-11 h-12 rounded-full border-border bg-muted/50 text-sm"
                   required
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          {!isLogin && (
-            <div className="space-y-1.5">
-              <Label htmlFor="jobTitle" className="text-sm font-medium text-foreground">
-                Puesto actual
-              </Label>
+            {!isLogin && (
               <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                 <Input
-                  id="jobTitle"
                   value={jobTitle}
                   onChange={e => setJobTitle(e.target.value)}
-                  placeholder="Ingeniero de Proyectos"
-                  className="pl-10 h-11 bg-background"
+                  placeholder="Puesto actual"
+                  className="pl-11 h-12 rounded-full border-border bg-muted/50 text-sm"
                   required
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground">
-              Correo electrónico
-            </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
               <Input
-                id="email"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="nombre@hexaingenieros.com"
-                className="pl-10 h-11 bg-background"
+                placeholder="Correo electrónico"
+                className="pl-11 h-12 rounded-full border-border bg-muted/50 text-sm"
                 required
               />
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground">
-              Contraseña
-            </Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
               <Input
-                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="pl-10 pr-10 h-11 bg-background"
+                placeholder="Contraseña"
+                className="pl-11 pr-11 h-12 rounded-full border-border bg-muted/50 text-sm"
                 minLength={6}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-          </div>
 
-          <Button type="submit" className="w-full h-11 font-medium text-sm" disabled={loading}>
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-                <ArrowRight className="h-4 w-4 ml-1.5" />
-              </>
-            )}
-          </Button>
-        </form>
+            <Button
+              type="submit"
+              className="w-full h-12 rounded-full font-semibold text-sm"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
+              )}
+            </Button>
+          </form>
 
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-background px-3 text-xs text-muted-foreground">
-              {isLogin ? '¿Nuevo en Hexa?' : '¿Ya tienes cuenta?'}
-            </span>
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
+              <span className="font-semibold text-primary">
+                {isLogin ? 'Regístrate' : 'Inicia sesión'}
+              </span>
+            </button>
           </div>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIsLogin(!isLogin)}
-          className="w-full h-11 text-sm font-medium"
-        >
-          {isLogin ? 'Crear una cuenta' : 'Iniciar sesión'}
-        </Button>
-
-        <p className="text-center text-xs text-muted-foreground mt-8 tracking-wide">
-          Solo para empleados de Hexa Ingenieros
-        </p>
       </div>
     </div>
   );
