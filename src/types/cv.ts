@@ -8,6 +8,7 @@ export interface PersonalInfo {
   dateOfBirth: string;
   photo: string | null;
   showPersonalInfo: boolean;
+  showName: boolean;
 }
 
 export interface ProfessionalProfile {
@@ -82,6 +83,7 @@ export const defaultCVData: CVData = {
     dateOfBirth: '',
     photo: null,
     showPersonalInfo: true,
+    showName: true,
   },
   professionalProfile: {
     jobTitle: '',
@@ -111,6 +113,7 @@ export const sampleCVData: CVData = {
     dateOfBirth: '1990-05-15',
     photo: null,
     showPersonalInfo: true,
+    showName: true,
   },
   professionalProfile: {
     jobTitle: 'Ingeniera de Proyectos Senior',

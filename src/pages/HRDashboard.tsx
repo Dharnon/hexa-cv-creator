@@ -6,6 +6,8 @@ import { CVPreview } from '@/components/cv/CVPreview';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +24,16 @@ interface EmployeeCV {
   updated_at: string;
 }
 
+function normalizeCVData(cvData: CVData): CVData {
+  return {
+    ...cvData,
+    personalInfo: {
+      ...cvData.personalInfo,
+      showName: cvData.personalInfo.showName ?? true,
+    },
+  };
+}
+
 export default function HRDashboard() {
   const { signOut, isAdmin, isHR } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +42,7 @@ export default function HRDashboard() {
   const [search, setSearch] = useState('');
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -48,7 +61,7 @@ export default function HRDashboard() {
         user_id: profile.user_id,
         full_name: profile.full_name || profile.email,
         email: profile.email,
-        data: cv ? (cv.data as unknown as CVData) : null,
+        data: cv ? normalizeCVData(cv.data as unknown as CVData) : null,
         updated_at: cv?.updated_at ?? profile.created_at,
       };
     });
@@ -97,14 +110,16 @@ export default function HRDashboard() {
     );
     const children: Paragraph[] = [];
 
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: cvData.personalInfo.fullName || name, bold: true, size: 32 }),
-        ],
-        heading: HeadingLevel.HEADING_1,
-      }),
-    );
+    if (cvData.personalInfo.showName) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: cvData.personalInfo.fullName || name, bold: true, size: 32 }),
+          ],
+          heading: HeadingLevel.HEADING_1,
+        }),
+      );
+    }
     children.push(
       new Paragraph({
         children: [
@@ -208,6 +223,37 @@ export default function HRDashboard() {
     toast.success('Word descargado');
   };
 
+  const updatePreviewShowName = (value: boolean) => {
+    if (!previewData) return;
+    setPreviewData({
+      ...previewData,
+      personalInfo: {
+        ...previewData.personalInfo,
+        showName: value,
+      },
+    });
+  };
+
+  const savePreviewSettings = async () => {
+    if (!previewData || !previewUserId) return;
+    const { error } = await supabase
+      .from('cv_data')
+      .update({ data: previewData as unknown as Record<string, unknown> })
+      .eq('user_id', previewUserId);
+
+    if (error) {
+      toast.error(`No se pudo guardar: ${error.message}`);
+      return;
+    }
+
+    setEmployees((current) =>
+      current.map((employee) =>
+        employee.user_id === previewUserId ? { ...employee, data: previewData } : employee,
+      ),
+    );
+    toast.success('Preferencias del CV guardadas');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -279,8 +325,9 @@ export default function HRDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setPreviewData(employee.data);
+                                setPreviewData(normalizeCVData(employee.data));
                                 setPreviewName(employee.full_name);
+                                setPreviewUserId(employee.user_id);
                               }}
                             >
                               <Eye className="mr-1 h-4 w-4" /> Ver
@@ -322,6 +369,7 @@ export default function HRDashboard() {
         onOpenChange={() => {
           setPreviewData(null);
           setPreviewName('');
+          setPreviewUserId(null);
         }}
       >
         <DialogContent className="max-h-[90vh] max-w-[900px] overflow-auto">
@@ -338,6 +386,20 @@ export default function HRDashboard() {
               <FileText className="mr-1 h-4 w-4" /> Word
             </Button>
           </div>
+          {previewData && (
+            <div className="mb-4 flex items-center justify-between rounded-md border p-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={previewData.personalInfo.showName}
+                  onCheckedChange={updatePreviewShowName}
+                />
+                <Label>Mostrar nombre en cabecera</Label>
+              </div>
+              <Button size="sm" variant="outline" onClick={savePreviewSettings}>
+                Guardar cambio
+              </Button>
+            </div>
+          )}
           {previewData && (
             <div id="hr-cv-preview">
               <CVPreview data={previewData} />

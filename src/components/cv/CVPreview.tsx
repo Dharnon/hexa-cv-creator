@@ -1,11 +1,11 @@
-import { CVData } from '@/types/cv';
+﻿import { CVData } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
 
 function formatMonth(dateStr: string): string {
   if (!dateStr) return '';
   const [year, month] = dateStr.split('-');
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return `${months[parseInt(month) - 1]} ${year}`;
+  return `${months[parseInt(month, 10) - 1]} ${year}`;
 }
 
 export function CVPreview({ data }: { data: CVData }) {
@@ -15,60 +15,53 @@ export function CVPreview({ data }: { data: CVData }) {
   const sortedEdu = [...education].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
   return (
-    <div id="cv-preview" className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto shadow-lg flex flex-col" style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.5', minHeight: '297mm' }}>
-      {/* Header */}
+    <div
+      id="cv-preview"
+      className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto shadow-lg flex flex-col"
+      style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.5', minHeight: '297mm' }}
+    >
       <div className="flex items-center justify-between px-8 py-4 border-b-2" style={{ borderColor: '#3B82D6' }}>
+        <div className="flex items-center gap-3">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
+          <p className="text-[10px] text-gray-500">Europass CV</p>
+        </div>
+
         <div className="flex items-center gap-4">
           {personalInfo.photo && personalInfo.showPersonalInfo && (
-            <img src={personalInfo.photo} alt="" className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: '#3B82D6' }} />
+            <img
+              src={personalInfo.photo}
+              alt=""
+              className="w-16 h-16 rounded-full object-cover border-2"
+              style={{ borderColor: '#3B82D6' }}
+            />
           )}
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: '#1a1a2e' }}>{personalInfo.fullName || 'Nombre Completo'}</h1>
-            <p className="text-sm font-medium" style={{ color: '#3B82D6' }}>{professionalProfile.jobTitle || 'Puesto'}</p>
+          <div className="text-right">
+            {personalInfo.showName && (
+              <h1 className="text-xl font-bold" style={{ color: '#1a1a2e' }}>
+                {personalInfo.fullName || 'Nombre Completo'}
+              </h1>
+            )}
+            <p className="text-sm font-medium" style={{ color: '#3B82D6' }}>
+              {professionalProfile.jobTitle || 'Puesto'}
+            </p>
           </div>
-        </div>
-        <div className="text-right">
-          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto ml-auto" />
-          <p className="text-[9px] text-gray-400 mt-1">Europass CV</p>
         </div>
       </div>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
         {personalInfo.showPersonalInfo && (
           <div className="w-52 shrink-0 p-5 bg-gray-50 border-r border-gray-200 space-y-4">
-            <Section title="INFORMACIÓN PERSONAL">
+            <Section title="INFORMACION PERSONAL">
               {personalInfo.email && <InfoLine label="Email" value={personalInfo.email} />}
-              {personalInfo.phone && <InfoLine label="Teléfono" value={personalInfo.phone} />}
-              {personalInfo.address && <InfoLine label="Dirección" value={personalInfo.address} />}
+              {personalInfo.phone && <InfoLine label="Telefono" value={personalInfo.phone} />}
+              {personalInfo.address && <InfoLine label="Direccion" value={personalInfo.address} />}
               {personalInfo.linkedin && <InfoLine label="LinkedIn" value={personalInfo.linkedin} />}
               {personalInfo.nationality && <InfoLine label="Nacionalidad" value={personalInfo.nationality} />}
               {personalInfo.dateOfBirth && <InfoLine label="Nacimiento" value={personalInfo.dateOfBirth} />}
             </Section>
-
-            {competencies.motherTongue && (
-              <Section title="IDIOMAS">
-                <p className="text-[10px]"><span className="font-medium">Lengua materna:</span> {competencies.motherTongue}</p>
-                {competencies.languages.map(lang => (
-                  <div key={lang.id} className="mt-1">
-                    <p className="font-medium text-[10px]">{lang.name}</p>
-                    <p className="text-[9px] text-gray-500">
-                      {[lang.listening, lang.reading, lang.spokenInteraction, lang.spokenProduction, lang.writing].filter(Boolean).join(' / ')}
-                    </p>
-                  </div>
-                ))}
-              </Section>
-            )}
-
-            {competencies.drivingLicense && (
-              <Section title="PERMISO DE CONDUCIR">
-                <p className="text-[10px]">{competencies.drivingLicense}</p>
-              </Section>
-            )}
           </div>
         )}
 
-        {/* Main content */}
         <div className="flex-1 p-6 space-y-5">
           {professionalProfile.summary && (
             <Section title="PERFIL PROFESIONAL">
@@ -78,15 +71,18 @@ export function CVPreview({ data }: { data: CVData }) {
 
           {sortedExp.length > 0 && (
             <Section title="EXPERIENCIA LABORAL">
-              {sortedExp.map(exp => (
+              {sortedExp.map((exp) => (
                 <div key={exp.id} className="mb-3 pl-3 border-l-2" style={{ borderColor: '#3B82D6' }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold text-[11px]">{exp.jobTitle}</p>
-                      <p className="text-[10px]" style={{ color: '#3B82D6' }}>{exp.company}{exp.location ? `, ${exp.location}` : ''}</p>
+                      <p className="text-[10px]" style={{ color: '#3B82D6' }}>
+                        {exp.company}
+                        {exp.location ? `, ${exp.location}` : ''}
+                      </p>
                     </div>
                     <p className="text-[10px] text-gray-500 shrink-0 ml-2">
-                      {formatMonth(exp.startDate)} — {exp.isCurrentJob ? 'Actualidad' : formatMonth(exp.endDate)}
+                      {formatMonth(exp.startDate)} - {exp.isCurrentJob ? 'Actualidad' : formatMonth(exp.endDate)}
                     </p>
                   </div>
                   {exp.sector && <p className="text-[9px] text-gray-400 mt-0.5">Sector: {exp.sector}</p>}
@@ -97,10 +93,15 @@ export function CVPreview({ data }: { data: CVData }) {
                       ))}
                     </ul>
                   )}
-                  {exp.technologies && <p className="text-[9px] text-gray-500 mt-1"><span className="font-medium">Tecnologías:</span> {exp.technologies}</p>}
+                  {exp.technologies && (
+                    <p className="text-[9px] text-gray-500 mt-1">
+                      <span className="font-medium">Tecnologias:</span> {exp.technologies}
+                    </p>
+                  )}
                   {exp.isManager && (
                     <p className="text-[9px] text-gray-500 mt-0.5">
-                      <span className="font-medium">Responsable de equipo:</span> {exp.peopleManaged} personas{exp.teamDescription ? ` — ${exp.teamDescription}` : ''}
+                      <span className="font-medium">Responsable de equipo:</span> {exp.peopleManaged} personas
+                      {exp.teamDescription ? ` - ${exp.teamDescription}` : ''}
                     </p>
                   )}
                 </div>
@@ -109,8 +110,8 @@ export function CVPreview({ data }: { data: CVData }) {
           )}
 
           {sortedEdu.length > 0 && (
-            <Section title="EDUCACIÓN Y FORMACIÓN">
-              {sortedEdu.map(ed => (
+            <Section title="EDUCACION Y FORMACION">
+              {sortedEdu.map((ed) => (
                 <div key={ed.id} className="mb-3 pl-3 border-l-2" style={{ borderColor: '#3B82D6' }}>
                   <div className="flex justify-between items-start">
                     <div>
@@ -118,7 +119,7 @@ export function CVPreview({ data }: { data: CVData }) {
                       <p className="text-[10px]" style={{ color: '#3B82D6' }}>{ed.institution}</p>
                     </div>
                     <p className="text-[10px] text-gray-500 shrink-0 ml-2">
-                      {formatMonth(ed.startDate)} — {formatMonth(ed.endDate)}
+                      {formatMonth(ed.startDate)} - {formatMonth(ed.endDate)}
                     </p>
                   </div>
                   {ed.subjects && <p className="text-[9px] text-gray-500 mt-0.5">{ed.subjects}</p>}
@@ -128,9 +129,35 @@ export function CVPreview({ data }: { data: CVData }) {
             </Section>
           )}
 
+          {(competencies.motherTongue || competencies.languages.length > 0) && (
+            <Section title="IDIOMAS">
+              {competencies.motherTongue && (
+                <p className="text-[10px] mb-1">
+                  <span className="font-medium">Lengua materna:</span> {competencies.motherTongue}
+                </p>
+              )}
+              {competencies.languages.map((lang) => (
+                <div key={lang.id} className="mb-1.5">
+                  <p className="font-medium text-[10px]">{lang.name}</p>
+                  <p className="text-[9px] text-gray-500">
+                    {[lang.listening, lang.reading, lang.spokenInteraction, lang.spokenProduction, lang.writing]
+                      .filter(Boolean)
+                      .join(' / ')}
+                  </p>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {competencies.drivingLicense && (
+            <Section title="PERMISO DE CONDUCIR">
+              <p className="text-[10px]">{competencies.drivingLicense}</p>
+            </Section>
+          )}
+
           {(competencies.technicalSkills || competencies.socialSkills || competencies.organizationalSkills || competencies.otherSkills) && (
             <Section title="COMPETENCIAS">
-              {competencies.technicalSkills && <CompBlock label="Técnicas" text={competencies.technicalSkills} />}
+              {competencies.technicalSkills && <CompBlock label="Tecnicas" text={competencies.technicalSkills} />}
               {competencies.socialSkills && <CompBlock label="Sociales" text={competencies.socialSkills} />}
               {competencies.organizationalSkills && <CompBlock label="Organizativas" text={competencies.organizationalSkills} />}
               {competencies.otherSkills && <CompBlock label="Otros" text={competencies.otherSkills} />}
@@ -145,7 +172,9 @@ export function CVPreview({ data }: { data: CVData }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3B82D6' }}>{title}</h3>
+      <h3 className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#3B82D6' }}>
+        {title}
+      </h3>
       {children}
     </div>
   );
