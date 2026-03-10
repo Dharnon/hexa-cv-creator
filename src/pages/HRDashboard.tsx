@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { CVData } from '@/types/cv';
@@ -15,6 +15,7 @@ import { FileDown, FileText, Eye, Search, ArrowLeft } from 'lucide-react';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { exportCvElementToPdf } from '@/lib/cvPdfExport';
 
 interface EmployeeCV {
   user_id: string;
@@ -24,12 +25,76 @@ interface EmployeeCV {
   updated_at: string;
 }
 
+function FitToScreenPreview({ children }: { children: React.ReactNode }) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(1);
+  const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const content = contentRef.current;
+    if (!viewport || !content) return;
+
+    const updateScale = () => {
+      const viewportWidth = viewport.clientWidth;
+      const viewportHeight = viewport.clientHeight;
+      const contentWidth = content.offsetWidth;
+      const contentHeight = content.offsetHeight;
+
+      if (!viewportWidth || !viewportHeight || !contentWidth || !contentHeight) return;
+
+      const a4HeightForWidth = contentWidth * (297 / 210);
+      const scaleReferenceHeight = Math.min(contentHeight, a4HeightForWidth);
+      const nextScale = Math.min(
+        viewportWidth / contentWidth,
+        viewportHeight / scaleReferenceHeight,
+        1,
+      );
+      setScale(nextScale);
+      setContentSize({ width: contentWidth, height: contentHeight });
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(viewport);
+    observer.observe(content);
+    window.addEventListener('resize', updateScale);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [children]);
+
+  return (
+    <div ref={viewportRef} className="relative flex-1 overflow-auto rounded-md border bg-muted/20 p-3">
+      <div
+        className="mx-auto"
+        style={{
+          width: contentSize.width ? contentSize.width * scale : undefined,
+          height: contentSize.height ? contentSize.height * scale : undefined,
+        }}
+      >
+        <div
+          ref={contentRef}
+          className="origin-top-left"
+          style={{ transform: `scale(${scale})` }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function normalizeCVData(cvData: CVData): CVData {
   return {
     ...cvData,
     personalInfo: {
       ...cvData.personalInfo,
       showName: cvData.personalInfo.showName ?? true,
+      showPersonalInfo: cvData.personalInfo.showPersonalInfo ?? true,
     },
   };
 }
@@ -42,7 +107,11 @@ export default function HRDashboard() {
   const [search, setSearch] = useState('');
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
-  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [pdfRenderData, setPdfRenderData] = useState<CVData | null>(null);
+  const [globalPreviewOptions, setGlobalPreviewOptions] = useState({
+    showName: true,
+    showPersonalInfo: true,
+  });
 
   useEffect(() => {
     loadEmployees();
@@ -76,45 +145,54 @@ export default function HRDashboard() {
       employee.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const exportPDF = async (cvData: CVData, name: string) => {
-    setPreviewData(cvData);
-    setPreviewName(name);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const element = document.getElementById('hr-cv-preview');
-    if (!element) {
-      return;
-    }
+  const applyGlobalPreviewOptions = (cvData: CVData): CVData => ({
+    ...cvData,
+    personalInfo: {
+      ...cvData.personalInfo,
+      showName: globalPreviewOptions.showName,
+      showPersonalInfo: globalPreviewOptions.showPersonalInfo,
+    },
+  });
 
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`CV_${name.replace(/\s+/g, '_')}.pdf`);
-    setPreviewData(null);
-    toast.success('PDF descargado');
+  const exportPDF = async (cvData: CVData, name: string) => {
+    const normalized = normalizeCVData(cvData);
+    const preparedData = applyGlobalPreviewOptions(normalized);
+    setPdfRenderData(preparedData);
+
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+
+    const element = document.getElementById('pdf-export-preview');
+    if (!element) return;
+
+    try {
+      await exportCvElementToPdf(element, `CV_${name.replace(/\s+/g, '_')}.pdf`);
+      toast.success('PDF descargado');
+    } finally {
+      setPdfRenderData(null);
+    }
   };
 
   const exportWord = async (cvData: CVData, name: string) => {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
     const { saveAs } = await import('file-saver');
+    const normalized = normalizeCVData(cvData);
+    const preparedData = applyGlobalPreviewOptions(normalized);
 
-    const sortedExperience = [...cvData.workExperience].sort((a, b) =>
+    const sortedExperience = [...preparedData.workExperience].sort((a, b) =>
       b.startDate.localeCompare(a.startDate),
     );
-    const sortedEducation = [...cvData.education].sort((a, b) =>
+    const sortedEducation = [...preparedData.education].sort((a, b) =>
       b.startDate.localeCompare(a.startDate),
     );
     const children: InstanceType<typeof Paragraph>[] = [];
 
-    if (cvData.personalInfo.showName) {
+    if (preparedData.personalInfo.showName) {
       children.push(
         new Paragraph({
           children: [
-            new TextRun({ text: cvData.personalInfo.fullName || name, bold: true, size: 32 }),
+            new TextRun({ text: preparedData.personalInfo.fullName || name, bold: true, size: 32 }),
           ],
           heading: HeadingLevel.HEADING_1,
         }),
@@ -124,7 +202,7 @@ export default function HRDashboard() {
       new Paragraph({
         children: [
           new TextRun({
-            text: cvData.professionalProfile.jobTitle || '',
+            text: preparedData.professionalProfile.jobTitle || '',
             color: '3B82D6',
             size: 24,
           }),
@@ -133,7 +211,7 @@ export default function HRDashboard() {
     );
     children.push(new Paragraph({ text: '' }));
 
-    if (cvData.personalInfo.showPersonalInfo) {
+    if (preparedData.personalInfo.showPersonalInfo) {
       children.push(
         new Paragraph({
           children: [
@@ -141,7 +219,7 @@ export default function HRDashboard() {
           ],
         }),
       );
-      [['Email', cvData.personalInfo.email], ['Telefono', cvData.personalInfo.phone], ['Direccion', cvData.personalInfo.address]]
+      [['Email', preparedData.personalInfo.email], ['Telefono', preparedData.personalInfo.phone], ['Direccion', preparedData.personalInfo.address]]
         .filter(([, value]) => value)
         .forEach(([label, value]) => {
           children.push(
@@ -223,48 +301,6 @@ export default function HRDashboard() {
     toast.success('Word descargado');
   };
 
-  const updatePreviewShowName = (value: boolean) => {
-    if (!previewData) return;
-    setPreviewData({
-      ...previewData,
-      personalInfo: {
-        ...previewData.personalInfo,
-        showName: value,
-      },
-    });
-  };
-
-  const updatePreviewShowPersonalInfo = (value: boolean) => {
-    if (!previewData) return;
-    setPreviewData({
-      ...previewData,
-      personalInfo: {
-        ...previewData.personalInfo,
-        showPersonalInfo: value,
-      },
-    });
-  };
-
-  const savePreviewSettings = async () => {
-    if (!previewData || !previewUserId) return;
-    const { error } = await supabase
-      .from('cv_data')
-      .update({ data: previewData as unknown as Record<string, unknown> })
-      .eq('user_id', previewUserId);
-
-    if (error) {
-      toast.error(`No se pudo guardar: ${error.message}`);
-      return;
-    }
-
-    setEmployees((current) =>
-      current.map((employee) =>
-        employee.user_id === previewUserId ? { ...employee, data: previewData } : employee,
-      ),
-    );
-    toast.success('Preferencias del CV guardadas');
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -312,6 +348,39 @@ export default function HRDashboard() {
               </div>
               <p className="text-sm text-muted-foreground">{filtered.length} empleados</p>
             </div>
+            <Card>
+              <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Opciones globales de visualizacion</p>
+                  <p className="text-xs text-muted-foreground">
+                    Se aplican para todos al abrir vista previa y descargar PDF/Word.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={globalPreviewOptions.showName}
+                      onCheckedChange={(value) =>
+                        setGlobalPreviewOptions((current) => ({ ...current, showName: value }))
+                      }
+                    />
+                    <Label>Mostrar nombre en cabecera</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={globalPreviewOptions.showPersonalInfo}
+                      onCheckedChange={(value) =>
+                        setGlobalPreviewOptions((current) => ({
+                          ...current,
+                          showPersonalInfo: value,
+                        }))
+                      }
+                    />
+                    <Label>Mostrar informacion personal</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {loading ? (
               <p className="text-muted-foreground">Cargando...</p>
@@ -336,9 +405,9 @@ export default function HRDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                setPreviewData(normalizeCVData(employee.data));
+                                const normalized = normalizeCVData(employee.data);
+                                setPreviewData(applyGlobalPreviewOptions(normalized));
                                 setPreviewName(employee.full_name);
-                                setPreviewUserId(employee.user_id);
                               }}
                             >
                               <Eye className="mr-1 h-4 w-4" /> Ver
@@ -380,53 +449,26 @@ export default function HRDashboard() {
         onOpenChange={() => {
           setPreviewData(null);
           setPreviewName('');
-          setPreviewUserId(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-[900px] overflow-auto">
+        <DialogContent className="grid h-[95vh] max-w-[1100px] grid-rows-[auto,minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:p-6">
           <DialogTitle>CV de {previewName}</DialogTitle>
-          <div className="mb-4 flex gap-2">
-            <Button size="sm" onClick={() => previewData && exportPDF(previewData, previewName)}>
-              <FileDown className="mr-1 h-4 w-4" /> PDF
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => previewData && exportWord(previewData, previewName)}
-            >
-              <FileText className="mr-1 h-4 w-4" /> Word
-            </Button>
-          </div>
           {previewData && (
-            <div className="mb-4 flex items-center justify-between rounded-md border p-3">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={previewData.personalInfo.showName}
-                    onCheckedChange={updatePreviewShowName}
-                  />
-                  <Label>Mostrar nombre en cabecera</Label>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={previewData.personalInfo.showPersonalInfo}
-                    onCheckedChange={updatePreviewShowPersonalInfo}
-                  />
-                  <Label>Mostrar informacion personal</Label>
-                </div>
+            <FitToScreenPreview>
+              <div id="hr-cv-preview">
+                <CVPreview data={previewData} mode="export" />
               </div>
-              <Button size="sm" variant="outline" onClick={savePreviewSettings}>
-                Guardar cambio
-              </Button>
-            </div>
-          )}
-          {previewData && (
-            <div id="hr-cv-preview">
-              <CVPreview data={previewData} />
-            </div>
+            </FitToScreenPreview>
           )}
         </DialogContent>
       </Dialog>
+      {pdfRenderData && (
+        <div style={{ position: 'fixed', left: '-10000px', top: 0, width: '210mm', background: '#fff' }}>
+          <div id="pdf-export-preview">
+            <CVPreview data={pdfRenderData} mode="export" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,13 @@ function formatMonth(dateStr: string): string {
   return `${months[parseInt(month, 10) - 1]} ${year}`;
 }
 
-export function CVPreview({ data }: { data: CVData }) {
+export function CVPreview({
+  data,
+  mode = 'screen',
+}: {
+  data: CVData;
+  mode?: 'screen' | 'export';
+}) {
   const { personalInfo, professionalProfile, workExperience, education, competencies } = data;
 
   const sortedExp = [...workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
@@ -17,7 +23,12 @@ export function CVPreview({ data }: { data: CVData }) {
   return (
     <div
       id="cv-preview"
-      className="bg-white text-gray-900 w-full max-w-[210mm] mx-auto shadow-lg flex flex-col"
+      className={[
+        'bg-white text-gray-900 flex flex-col',
+        mode === 'screen'
+          ? 'w-full max-w-[210mm] mx-auto shadow-lg'
+          : 'w-[210mm] max-w-none mx-0 shadow-none',
+      ].join(' ')}
       style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.5', minHeight: '297mm' }}
     >
       <div className="flex items-center justify-between px-8 py-4 border-b-2" style={{ borderColor: '#3B82D6' }}>

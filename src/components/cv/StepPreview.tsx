@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { FileDown, FileText } from 'lucide-react';
 import { useRef } from 'react';
+import { exportCvElementToPdf } from '@/lib/cvPdfExport';
 
 export function StepPreview() {
   const { data, updateData } = useCV();
@@ -17,15 +18,7 @@ export function StepPreview() {
   const exportPDF = async () => {
     const el = document.getElementById('cv-preview');
     if (!el) return;
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = (canvas.height * pdfW) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-    pdf.save(`CV_${data.personalInfo.fullName || 'Europass'}.pdf`);
+    await exportCvElementToPdf(el, `CV_${data.personalInfo.fullName || 'Europass'}.pdf`);
   };
 
   const exportWord = async () => {
