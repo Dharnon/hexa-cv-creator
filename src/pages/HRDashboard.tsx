@@ -234,6 +234,17 @@ export default function HRDashboard() {
     });
   };
 
+  const updatePreviewShowPersonalInfo = (value: boolean) => {
+    if (!previewData) return;
+    setPreviewData({
+      ...previewData,
+      personalInfo: {
+        ...previewData.personalInfo,
+        showPersonalInfo: value,
+      },
+    });
+  };
+
   const savePreviewSettings = async () => {
     if (!previewData || !previewUserId) return;
     const { error } = await supabase
@@ -388,12 +399,21 @@ export default function HRDashboard() {
           </div>
           {previewData && (
             <div className="mb-4 flex items-center justify-between rounded-md border p-3">
-              <div className="flex items-center gap-3">
-                <Switch
-                  checked={previewData.personalInfo.showName}
-                  onCheckedChange={updatePreviewShowName}
-                />
-                <Label>Mostrar nombre en cabecera</Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={previewData.personalInfo.showName}
+                    onCheckedChange={updatePreviewShowName}
+                  />
+                  <Label>Mostrar nombre en cabecera</Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={previewData.personalInfo.showPersonalInfo}
+                    onCheckedChange={updatePreviewShowPersonalInfo}
+                  />
+                  <Label>Mostrar informacion personal</Label>
+                </div>
               </div>
               <Button size="sm" variant="outline" onClick={savePreviewSettings}>
                 Guardar cambio
