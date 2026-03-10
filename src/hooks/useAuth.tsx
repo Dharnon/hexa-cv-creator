@@ -15,6 +15,26 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+const COMPANY_DOMAIN = '@hexaingenieros.com';
+
+const isCompanyEmail = (email: string): boolean =>
+  email.trim().toLowerCase().endsWith(COMPANY_DOMAIN);
+
+const getAuthRedirectUrl = (): string => {
+  const configured = import.meta.env.VITE_AUTH_REDIRECT_URL;
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.toString();
+      }
+    } catch {
+      // Fallback to current origin when env is malformed.
+    }
+  }
+
+  return window.location.origin;
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -57,23 +77,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchRoles]);
 
   const signIn = async (email: string, password: string) => {
-    if (!email.endsWith('@hexaingenieros.com')) {
-      return { error: 'Solo se permiten correos @hexaingenieros.com' };
+    if (!isCompanyEmail(email)) {
+      return { error: `Solo se permiten correos ${COMPANY_DOMAIN}` };
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   };
 
   const signUp = async (email: string, password: string, fullName: string, jobTitle: string) => {
-    if (!email.endsWith('@hexaingenieros.com')) {
-      return { error: 'Solo se permiten correos @hexaingenieros.com' };
+    if (!isCompanyEmail(email)) {
+      return { error: `Solo se permiten correos ${COMPANY_DOMAIN}` };
     }
     const { error, data: signUpData } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName, job_title: jobTitle },
-        emailRedirectTo: 'http://10.12.100.35',
+        emailRedirectTo: getAuthRedirectUrl(),
       },
     });
     if (!error && signUpData.user) {

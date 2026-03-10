@@ -32,6 +32,8 @@ const parseHours = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : parseFloat(String(value ?? '0'));
   return Number.isNaN(parsed) ? 0 : parsed;
 };
+const isProduction = process.env.NODE_ENV === 'production';
+const EMPLOYEE_ID_REGEX = /^[0-9A-Za-z_-]{1,32}$/;
 
 const ensureSapAvailable = (res: Response): boolean => {
   if (db.isAvailable()) {
@@ -40,7 +42,9 @@ const ensureSapAvailable = (res: Response): boolean => {
 
   res.status(503).json({
     error: 'SAP HANA is unavailable',
-    details: db.getFailureReason() ?? 'SAP HANA connection has not been established.',
+    ...(isProduction
+      ? {}
+      : { details: db.getFailureReason() ?? 'SAP HANA connection has not been established.' }),
   });
   return false;
 };
@@ -68,7 +72,7 @@ export const getEmployees = async (_req: Request, res: Response) => {
     db.markUnavailable(error);
     res.status(500).json({
       error: 'Failed to fetch employees',
-      details: error instanceof Error ? error.message : String(error),
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : String(error) }),
     });
   }
 };
@@ -78,6 +82,10 @@ export const getUserProjectReport = async (req: Request, res: Response) => {
 
   if (!employeeId) {
     res.status(400).json({ error: 'employeeId query parameter is required' });
+    return;
+  }
+  if (!EMPLOYEE_ID_REGEX.test(employeeId)) {
+    res.status(400).json({ error: 'employeeId format is invalid' });
     return;
   }
 
@@ -135,7 +143,7 @@ export const getUserProjectReport = async (req: Request, res: Response) => {
     db.markUnavailable(error);
     res.status(500).json({
       error: 'Failed to fetch user project report',
-      details: error instanceof Error ? error.message : String(error),
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : String(error) }),
     });
   }
 };
