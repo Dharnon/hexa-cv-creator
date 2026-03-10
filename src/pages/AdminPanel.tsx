@@ -18,10 +18,12 @@ interface UserWithRoles {
 }
 
 export default function AdminPanel() {
-  const { signOut, isAdmin, user } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingRole, setAddingRole] = useState<{ userId: string; role: string } | null>(null);
+
   useEffect(() => { loadUsers(); }, []);
 
   const loadUsers = async () => {
@@ -45,19 +47,7 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  const canManageRole = (role: string) => isAdmin || role !== 'admin';
-  const canManageUserRole = (targetUserId: string, role: string) => {
-    if (!canManageRole(role)) return false;
-    if (isAdmin && role === 'admin' && user?.id === targetUserId) return false;
-    return true;
-  };
-
   const addRole = async (userId: string, role: string) => {
-    if (!canManageUserRole(userId, role)) {
-      toast.error('No tienes permisos para asignar ese rol');
-      return;
-    }
-
     const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: role as any });
     if (error) {
       toast.error(error.message.includes('duplicate') ? 'El usuario ya tiene este rol' : error.message);
@@ -68,11 +58,6 @@ export default function AdminPanel() {
   };
 
   const removeRole = async (userId: string, role: string) => {
-    if (!canManageUserRole(userId, role)) {
-      toast.error('No tienes permisos para eliminar ese rol');
-      return;
-    }
-
     const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role as any);
     if (error) {
       toast.error(error.message);
@@ -114,11 +99,6 @@ export default function AdminPanel() {
         <Card>
           <CardHeader>
             <CardTitle>Usuarios y Roles</CardTitle>
-            {!isAdmin && (
-              <p className="text-sm text-muted-foreground">
-                Modo RRHH: puedes gestionar roles de HR y employee. El rol admin queda protegido.
-              </p>
-            )}
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -134,11 +114,9 @@ export default function AdminPanel() {
                         {u.roles.map(r => (
                           <Badge key={r} className={`${roleColors[r] ?? ''} gap-1`}>
                             {r}
-                            {canManageUserRole(u.user_id, r) && (
-                              <button onClick={() => removeRole(u.user_id, r)} className="hover:opacity-70">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
+                            <button onClick={() => removeRole(u.user_id, r)} className="hover:opacity-70">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </Badge>
                         ))}
                       </div>
@@ -150,7 +128,6 @@ export default function AdminPanel() {
                         </SelectTrigger>
                         <SelectContent>
                           {['admin', 'hr', 'employee']
-                            .filter(r => canManageRole(r))
                             .filter(r => !u.roles.includes(r))
                             .map(r => (
                               <SelectItem key={r} value={r}>{r}</SelectItem>
