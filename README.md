@@ -1,73 +1,34 @@
-# Welcome to your Lovable project
+﻿# Mini server SAP y despliegue
 
-## Project info
+## Desarrollo local
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+1. Instala dependencias del frontend con `npm install`.
+2. Instala dependencias del backend con `cd server && npm install`.
+3. Copia `server/.env.example` a `server/.env` y rellena las credenciales SAP.
+4. Arranca todo con `npm run dev`.
 
-## How can I edit this code?
+El frontend consume el backend local mediante `/sap-api`, resuelto por proxy en Vite.
 
-There are several ways of editing your application.
+## Docker Compose en VM
 
-**Use Lovable**
+1. Instala Docker, Compose plugin y Git en la VM:
+   - `sudo apt update && sudo apt install -y docker.io docker-compose-plugin git`
+2. Clona el repo en la VM y entra al proyecto:
+   - `git clone <URL_DEL_REPO> && cd hexa-cv-creator`
+3. Crea el archivo de secretos persistente:
+   - `sudo mkdir -p /etc/hexa`
+   - `sudo cp deploy/sap-api.env.example /etc/hexa/sap-api.env`
+   - `sudo nano /etc/hexa/sap-api.env`
+4. Copia ese env al workspace para el primer despliegue manual:
+   - `cp /etc/hexa/sap-api.env server/.env.production`
+5. Ejecuta:
+   - `docker compose up -d --build`
+6. Verifica:
+   - `curl http://127.0.0.1/sap-api/health`
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## CI/CD con runner self-hosted
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Instala un runner self-hosted de GitHub Actions en la VM.
+- Asegurate de que el runner tenga Docker y Docker Compose disponibles.
+- Mantén los secretos en `/etc/hexa/sap-api.env`.
+- Cada push a `main` ejecuta `.github/workflows/deploy-vm.yml` y redepliega los contenedores.

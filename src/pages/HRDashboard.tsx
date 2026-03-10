@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CVData, defaultCVData } from '@/types/cv';
+import { CVData } from '@/types/cv';
 import { CVPreview } from '@/components/cv/CVPreview';
+import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileDown, FileText, Eye, Search, ArrowLeft } from 'lucide-react';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +30,6 @@ export default function HRDashboard() {
   const [search, setSearch] = useState('');
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   useEffect(() => {
     loadEmployees();
@@ -39,16 +40,16 @@ export default function HRDashboard() {
     const { data: profiles } = await supabase.from('profiles').select('*');
     const { data: cvs } = await supabase.from('cv_data').select('*');
 
-    const cvMap = new Map(cvs?.map(cv => [cv.user_id, cv]) ?? []);
+    const cvMap = new Map(cvs?.map((cv) => [cv.user_id, cv]) ?? []);
 
-    const merged: EmployeeCV[] = (profiles ?? []).map(p => {
-      const cv = cvMap.get(p.user_id);
+    const merged: EmployeeCV[] = (profiles ?? []).map((profile) => {
+      const cv = cvMap.get(profile.user_id);
       return {
-        user_id: p.user_id,
-        full_name: p.full_name || p.email,
-        email: p.email,
+        user_id: profile.user_id,
+        full_name: profile.full_name || profile.email,
+        email: profile.email,
         data: cv ? (cv.data as unknown as CVData) : null,
-        updated_at: cv?.updated_at ?? p.created_at,
+        updated_at: cv?.updated_at ?? profile.created_at,
       };
     });
 
@@ -56,26 +57,29 @@ export default function HRDashboard() {
     setLoading(false);
   };
 
-  const filtered = employees.filter(e =>
-    e.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    e.email.toLowerCase().includes(search.toLowerCase())
+  const filtered = employees.filter(
+    (employee) =>
+      employee.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      employee.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   const exportPDF = async (cvData: CVData, name: string) => {
     setPreviewData(cvData);
     setPreviewName(name);
-    // Wait for preview to render
-    await new Promise(r => setTimeout(r, 300));
-    const el = document.getElementById('hr-cv-preview');
-    if (!el) return;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const element = document.getElementById('hr-cv-preview');
+    if (!element) {
+      return;
+    }
+
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = (canvas.height * pdfW) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
     pdf.save(`CV_${name.replace(/\s+/g, '_')}.pdf`);
     setPreviewData(null);
     toast.success('PDF descargado');
@@ -85,38 +89,115 @@ export default function HRDashboard() {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
     const { saveAs } = await import('file-saver');
 
-    const sortedExp = [...cvData.workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
-    const sortedEdu = [...cvData.education].sort((a, b) => b.startDate.localeCompare(a.startDate));
-    const children: any[] = [];
+    const sortedExperience = [...cvData.workExperience].sort((a, b) =>
+      b.startDate.localeCompare(a.startDate),
+    );
+    const sortedEducation = [...cvData.education].sort((a, b) =>
+      b.startDate.localeCompare(a.startDate),
+    );
+    const children: Paragraph[] = [];
 
-    children.push(new Paragraph({ children: [new TextRun({ text: cvData.personalInfo.fullName || name, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1 }));
-    children.push(new Paragraph({ children: [new TextRun({ text: cvData.professionalProfile.jobTitle || '', color: '3B82D6', size: 24 })] }));
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: cvData.personalInfo.fullName || name, bold: true, size: 32 }),
+        ],
+        heading: HeadingLevel.HEADING_1,
+      }),
+    );
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: cvData.professionalProfile.jobTitle || '',
+            color: '3B82D6',
+            size: 24,
+          }),
+        ],
+      }),
+    );
     children.push(new Paragraph({ text: '' }));
 
     if (cvData.personalInfo.showPersonalInfo) {
-      children.push(new Paragraph({ children: [new TextRun({ text: 'INFORMACIÓN PERSONAL', bold: true, color: '3B82D6', size: 20 })] }));
-      [['Email', cvData.personalInfo.email], ['Teléfono', cvData.personalInfo.phone], ['Dirección', cvData.personalInfo.address]].filter(([, v]) => v).forEach(([l, v]) => {
-        children.push(new Paragraph({ children: [new TextRun({ text: `${l}: `, bold: true, size: 20 }), new TextRun({ text: v as string, size: 20 })] }));
-      });
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'INFORMACION PERSONAL', bold: true, color: '3B82D6', size: 20 }),
+          ],
+        }),
+      );
+      [['Email', cvData.personalInfo.email], ['Telefono', cvData.personalInfo.phone], ['Direccion', cvData.personalInfo.address]]
+        .filter(([, value]) => value)
+        .forEach(([label, value]) => {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${label}: `, bold: true, size: 20 }),
+                new TextRun({ text: value as string, size: 20 }),
+              ],
+            }),
+          );
+        });
       children.push(new Paragraph({ text: '' }));
     }
 
-    if (sortedExp.length > 0) {
-      children.push(new Paragraph({ children: [new TextRun({ text: 'EXPERIENCIA LABORAL', bold: true, color: '3B82D6', size: 20 })] }));
-      sortedExp.forEach(exp => {
-        children.push(new Paragraph({ children: [new TextRun({ text: exp.jobTitle, bold: true, size: 20 }), new TextRun({ text: ` — ${exp.company}`, size: 20 })] }));
-        children.push(new Paragraph({ children: [new TextRun({ text: `${exp.startDate} — ${exp.isCurrentJob ? 'Actualidad' : exp.endDate}`, italics: true, size: 18 })] }));
-        exp.responsibilities.filter(Boolean).forEach(r => {
-          children.push(new Paragraph({ children: [new TextRun({ text: `• ${r}`, size: 20 })], indent: { left: 360 } }));
+    if (sortedExperience.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'EXPERIENCIA LABORAL', bold: true, color: '3B82D6', size: 20 }),
+          ],
+        }),
+      );
+      sortedExperience.forEach((experience) => {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: experience.jobTitle, bold: true, size: 20 }),
+              new TextRun({ text: ` - ${experience.company}`, size: 20 }),
+            ],
+          }),
+        );
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${experience.startDate} - ${experience.isCurrentJob ? 'Actualidad' : experience.endDate}`,
+                italics: true,
+                size: 18,
+              }),
+            ],
+          }),
+        );
+        experience.responsibilities.filter(Boolean).forEach((responsibility) => {
+          children.push(
+            new Paragraph({
+              children: [new TextRun({ text: `- ${responsibility}`, size: 20 })],
+              indent: { left: 360 },
+            }),
+          );
         });
         children.push(new Paragraph({ text: '' }));
       });
     }
 
-    if (sortedEdu.length > 0) {
-      children.push(new Paragraph({ children: [new TextRun({ text: 'EDUCACIÓN Y FORMACIÓN', bold: true, color: '3B82D6', size: 20 })] }));
-      sortedEdu.forEach(ed => {
-        children.push(new Paragraph({ children: [new TextRun({ text: ed.qualification, bold: true, size: 20 }), new TextRun({ text: ` — ${ed.institution}`, size: 20 })] }));
+    if (sortedEducation.length > 0) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'EDUCACION Y FORMACION', bold: true, color: '3B82D6', size: 20 }),
+          ],
+        }),
+      );
+      sortedEducation.forEach((education) => {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: education.qualification, bold: true, size: 20 }),
+              new TextRun({ text: ` - ${education.institution}`, size: 20 }),
+            ],
+          }),
+        );
         children.push(new Paragraph({ text: '' }));
       });
     }
@@ -130,17 +211,17 @@ export default function HRDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
               <p className="font-semibold text-foreground">Panel de RRHH</p>
-              <p className="text-xs text-muted-foreground">Gestión de CVs de empleados</p>
+              <p className="text-xs text-muted-foreground">Gestion de CVs y reportes SAP</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-1" /> Mi CV
+              <ArrowLeft className="mr-1 h-4 w-4" /> Mi CV
             </Button>
             {isAdmin && (
               <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
@@ -148,86 +229,113 @@ export default function HRDashboard() {
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={signOut}>
-              Cerrar Sesión
+              Cerrar sesion
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre o email..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">{filtered.length} empleados</p>
-        </div>
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <Tabs defaultValue="cvs" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="cvs">CVs</TabsTrigger>
+            <TabsTrigger value="sap">SAP</TabsTrigger>
+          </TabsList>
 
-        {loading ? (
-          <p className="text-muted-foreground">Cargando...</p>
-        ) : (
-          <div className="grid gap-4">
-            {filtered.map(emp => (
-              <Card key={emp.user_id} className="hover:shadow-md transition-shadow">
-                <CardContent className="flex items-center justify-between py-4">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{emp.full_name}</p>
-                    <p className="text-sm text-muted-foreground">{emp.email}</p>
-                    {emp.data?.professionalProfile?.jobTitle && (
-                      <p className="text-sm text-primary mt-0.5">{emp.data.professionalProfile.jobTitle}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {emp.data ? (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setPreviewData(emp.data); setPreviewName(emp.full_name); }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" /> Ver
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => exportPDF(emp.data!, emp.full_name)}
-                        >
-                          <FileDown className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => exportWord(emp.data!, emp.full_name)}
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sin CV</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+          <TabsContent value="cvs" className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nombre o email..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">{filtered.length} empleados</p>
+            </div>
+
+            {loading ? (
+              <p className="text-muted-foreground">Cargando...</p>
+            ) : (
+              <div className="grid gap-4">
+                {filtered.map((employee) => (
+                  <Card key={employee.user_id} className="transition-shadow hover:shadow-md">
+                    <CardContent className="flex items-center justify-between py-4">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{employee.full_name}</p>
+                        <p className="text-sm text-muted-foreground">{employee.email}</p>
+                        {employee.data?.professionalProfile?.jobTitle && (
+                          <p className="mt-0.5 text-sm text-primary">
+                            {employee.data.professionalProfile.jobTitle}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {employee.data ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setPreviewData(employee.data);
+                                setPreviewName(employee.full_name);
+                              }}
+                            >
+                              <Eye className="mr-1 h-4 w-4" /> Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => exportPDF(employee.data!, employee.full_name)}
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => exportWord(employee.data!, employee.full_name)}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sin CV</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="sap">
+            <SapUserReportSection />
+          </TabsContent>
+        </Tabs>
       </main>
 
-      {/* Preview dialog */}
-      <Dialog open={!!previewData && !!previewName} onOpenChange={() => { setPreviewData(null); setPreviewName(''); }}>
-        <DialogContent className="max-w-[900px] max-h-[90vh] overflow-auto">
+      <Dialog
+        open={!!previewData && !!previewName}
+        onOpenChange={() => {
+          setPreviewData(null);
+          setPreviewName('');
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-[900px] overflow-auto">
           <DialogTitle>CV de {previewName}</DialogTitle>
-          <div className="flex gap-2 mb-4">
+          <div className="mb-4 flex gap-2">
             <Button size="sm" onClick={() => previewData && exportPDF(previewData, previewName)}>
-              <FileDown className="w-4 h-4 mr-1" /> PDF
+              <FileDown className="mr-1 h-4 w-4" /> PDF
             </Button>
-            <Button size="sm" variant="outline" onClick={() => previewData && exportWord(previewData, previewName)}>
-              <FileText className="w-4 h-4 mr-1" /> Word
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => previewData && exportWord(previewData, previewName)}
+            >
+              <FileText className="mr-1 h-4 w-4" /> Word
             </Button>
           </div>
           {previewData && (

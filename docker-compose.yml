@@ -1,0 +1,18 @@
+﻿services:
+  sap-api:
+    build:
+      context: ./server
+    container_name: hexa-cv-sap-api
+    env_file:
+      - ./server/.env.production
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+    container_name: hexa-cv-web
+    depends_on:
+      - sap-api
+    ports:
+      - "80:80"
+    restart: unless-stopped
