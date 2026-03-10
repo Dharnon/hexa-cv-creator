@@ -23,7 +23,7 @@ interface EmployeeCV {
 }
 
 export default function HRDashboard() {
-  const { signOut, isAdmin, isHR } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<EmployeeCV[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +95,7 @@ export default function HRDashboard() {
     const sortedEducation = [...cvData.education].sort((a, b) =>
       b.startDate.localeCompare(a.startDate),
     );
-    const children: Paragraph[] = [];
+    const children: InstanceType<typeof Paragraph>[] = [];
 
     children.push(
       new Paragraph({
@@ -223,9 +223,9 @@ export default function HRDashboard() {
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Mi CV
             </Button>
-            {(isAdmin || isHR) && (
+            {isAdmin && (
               <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                Roles
+                Admin
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={signOut}>

@@ -7,7 +7,7 @@ export default defineConfig(async ({ mode }) => {
 
   if (mode === "development") {
     const { componentTagger } = await import("lovable-tagger");
-    plugins.push(componentTagger());
+    plugins.push(componentTagger() as any);
   }
 
   return {
@@ -21,7 +21,7 @@ export default defineConfig(async ({ mode }) => {
         "/sap-api": {
           target: "http://localhost:3006",
           changeOrigin: true,
-          rewrite: (pathValue) => pathValue.replace(/^\/sap-api/, ""),
+          rewrite: (pathValue: string) => pathValue.replace(/^\/sap-api/, ""),
         },
       },
     },
