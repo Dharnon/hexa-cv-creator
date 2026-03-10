@@ -34,6 +34,13 @@ jobs:
         run: |
           cp "$SAP_ENV_SOURCE" server/.env.production
 
+      - name: Strip BOM from env/config files
+        shell: bash
+        run: |
+          [ -f .env ] && sed -i 's/\xEF\xBB\xBF//g' .env || true
+          [ -f server/.env.production ] && sed -i 's/\xEF\xBB\xBF//g' server/.env.production || true
+          [ -f deploy/nginx.conf ] && sed -i 's/\xEF\xBB\xBF//g' deploy/nginx.conf || true
+
       - name: Build and deploy
         run: docker compose up -d --build --remove-orphans
 
