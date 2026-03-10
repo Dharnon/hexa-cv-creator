@@ -27,9 +27,9 @@ function HRRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { isAdmin, loading } = useAuth();
+  const { isHR, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Cargando...</div>;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!isHR) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

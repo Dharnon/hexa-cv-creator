@@ -21,6 +21,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
+  const authRedirectUrl =
+    import.meta.env.VITE_AUTH_REDIRECT_URL?.trim() || window.location.origin;
 
   const fetchRoles = useCallback(async (userId: string) => {
     const { data } = await supabase
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: { full_name: fullName, job_title: jobTitle },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: authRedirectUrl,
       },
     });
     if (!error && signUpData.user) {

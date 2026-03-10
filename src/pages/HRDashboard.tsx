@@ -23,7 +23,7 @@ interface EmployeeCV {
 }
 
 export default function HRDashboard() {
-  const { signOut, isAdmin } = useAuth();
+  const { signOut, isAdmin, isHR } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<EmployeeCV[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,9 +223,9 @@ export default function HRDashboard() {
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-1 h-4 w-4" /> Mi CV
             </Button>
-            {isAdmin && (
+            {(isAdmin || isHR) && (
               <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
-                Admin
+                Roles
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={signOut}>
