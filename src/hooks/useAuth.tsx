@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: { full_name: fullName, job_title: jobTitle },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: 'http://10.12.100.35',
       },
     });
     if (!error && signUpData.user) {
