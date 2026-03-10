@@ -95,7 +95,7 @@ export default function HRDashboard() {
     const sortedEducation = [...cvData.education].sort((a, b) =>
       b.startDate.localeCompare(a.startDate),
     );
-    const children: Paragraph[] = [];
+    const children: InstanceType<typeof Paragraph>[] = [];
 
     children.push(
       new Paragraph({
