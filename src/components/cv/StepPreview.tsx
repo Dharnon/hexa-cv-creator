@@ -1,15 +1,14 @@
 import { useCV } from '@/contexts/CVContext';
 import { CVPreview } from './CVPreview';
+import { CVPreviewFrame } from './CVPreviewFrame';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { FileDown, FileText } from 'lucide-react';
-import { useRef } from 'react';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
 
 export function StepPreview() {
   const { data, updateData } = useCV();
-  const previewRef = useRef<HTMLDivElement>(null);
 
   const togglePersonalInfo = (v: boolean) => {
     updateData({ personalInfo: { ...data.personalInfo, showPersonalInfo: v } });
@@ -186,9 +185,9 @@ export function StepPreview() {
         </div>
       </div>
 
-      <div ref={previewRef} className="border rounded-lg overflow-auto bg-muted/30 p-4">
+      <CVPreviewFrame>
         <CVPreview data={data} />
-      </div>
+      </CVPreviewFrame>
     </div>
   );
 }

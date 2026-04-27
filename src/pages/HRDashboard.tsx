@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { CVData } from '@/types/cv';
 import { CVPreview } from '@/components/cv/CVPreview';
+import { CVPreviewFrame } from '@/components/cv/CVPreviewFrame';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,69 +24,6 @@ interface EmployeeCV {
   email: string;
   data: CVData | null;
   updated_at: string;
-}
-
-function FitToScreenPreview({ children }: { children: React.ReactNode }) {
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
-  const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
-
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    const content = contentRef.current;
-    if (!viewport || !content) return;
-
-    const updateScale = () => {
-      const viewportWidth = viewport.clientWidth;
-      const viewportHeight = viewport.clientHeight;
-      const contentWidth = content.offsetWidth;
-      const contentHeight = content.offsetHeight;
-
-      if (!viewportWidth || !viewportHeight || !contentWidth || !contentHeight) return;
-
-      const a4HeightForWidth = contentWidth * (297 / 210);
-      const scaleReferenceHeight = Math.min(contentHeight, a4HeightForWidth);
-      const nextScale = Math.min(
-        viewportWidth / contentWidth,
-        viewportHeight / scaleReferenceHeight,
-        1,
-      );
-      setScale(nextScale);
-      setContentSize({ width: contentWidth, height: contentHeight });
-    };
-
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
-    observer.observe(viewport);
-    observer.observe(content);
-    window.addEventListener('resize', updateScale);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', updateScale);
-    };
-  }, [children]);
-
-  return (
-    <div ref={viewportRef} className="relative flex-1 overflow-auto rounded-md border bg-muted/20 p-3">
-      <div
-        className="mx-auto"
-        style={{
-          width: contentSize.width ? contentSize.width * scale : undefined,
-          height: contentSize.height ? contentSize.height * scale : undefined,
-        }}
-      >
-        <div
-          ref={contentRef}
-          className="origin-top-left"
-          style={{ transform: `scale(${scale})` }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function normalizeCVData(cvData: CVData): CVData {
@@ -451,14 +389,12 @@ export default function HRDashboard() {
           setPreviewName('');
         }}
       >
-        <DialogContent className="grid h-[95vh] max-w-[1100px] grid-rows-[auto,minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:p-6">
-          <DialogTitle>CV de {previewName}</DialogTitle>
+        <DialogContent className="grid h-[95vh] w-[min(96vw,1200px)] max-w-[1200px] grid-rows-[auto,minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:p-6">
+          <DialogTitle className="pr-8 text-lg">CV de {previewName}</DialogTitle>
           {previewData && (
-            <FitToScreenPreview>
-              <div id="hr-cv-preview">
-                <CVPreview data={previewData} mode="export" />
-              </div>
-            </FitToScreenPreview>
+            <CVPreviewFrame key={previewName} className="min-h-0 h-full max-h-full">
+              <CVPreview data={previewData} mode="screen" />
+            </CVPreviewFrame>
           )}
         </DialogContent>
       </Dialog>
