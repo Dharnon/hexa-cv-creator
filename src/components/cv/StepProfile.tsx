@@ -3,19 +3,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { ProjectRole } from '@/types/cv';
-import { cn } from '@/lib/utils';
 
 export function StepProfile() {
   const { data, updateData } = useCV();
   const profile = data.professionalProfile;
-  const role: ProjectRole = data.projectRole ?? 'miembro';
 
   const update = (field: string, value: string) => {
     updateData({ professionalProfile: { ...profile, [field]: value } });
   };
-
-  const setRole = (r: ProjectRole) => updateData({ projectRole: r });
 
   return (
     <div className="space-y-6">

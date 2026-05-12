@@ -62,6 +62,8 @@ export default function HRDashboard() {
     }
   });
   const [newTenderLabel, setNewTenderLabel] = useState('');
+  /** Vista previa / export RRHH: forzar rol o respetar el del CV. */
+  const [hrExportRoleMode, setHrExportRoleMode] = useState<'auto' | 'principal' | 'miembro'>('auto');
 
   useEffect(() => {
     loadEmployees();
@@ -198,8 +200,13 @@ export default function HRDashboard() {
     [tenders, activeTenderId],
   );
 
+  const applyHrRoleMode = (cv: CVData): CVData => {
+    if (hrExportRoleMode === 'auto') return cv;
+    return { ...cv, role: hrExportRoleMode === 'principal' ? 'lead' : 'member' };
+  };
+
   const exportPDF = async (cvData: CVData, name: string) => {
-    const normalized = normalizeCVData(cvData);
+    const normalized = normalizeCVData(applyHrRoleMode(cvData));
     setPdfRenderData(normalized);
 
     await new Promise<void>((resolve) =>
@@ -220,7 +227,7 @@ export default function HRDashboard() {
   const exportWord = async (cvData: CVData, name: string) => {
     const { Document, Packer } = await import('docx');
     const { saveAs } = await import('file-saver');
-    const normalized = normalizeCVData(cvData);
+    const normalized = normalizeCVData(applyHrRoleMode(cvData));
     const children = await buildCvDocxParagraphs(normalized, {
       showName,
       tenderLabel: activeTenderLabel,
@@ -345,11 +352,9 @@ export default function HRDashboard() {
                       <button
                         key={r}
                         type="button"
-                        onClick={() =>
-                          setGlobalPreviewOptions((current) => ({ ...current, projectRole: r }))
-                        }
+                        onClick={() => setHrExportRoleMode(r)}
                         className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                          globalPreviewOptions.projectRole === r
+                          hrExportRoleMode === r
                             ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-border bg-background hover:border-primary/40'
                         }`}
@@ -478,7 +483,7 @@ export default function HRDashboard() {
               </div>
               <CVPreviewFrame key={previewName} className="min-h-0 h-full max-h-full overflow-auto">
                 <CVPreview
-                  data={previewData}
+                  data={applyHrRoleMode(previewData)}
                   mode="screen"
                   showName={showName}
                   tenderLabel={activeTenderLabel}

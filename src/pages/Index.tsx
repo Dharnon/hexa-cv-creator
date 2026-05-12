@@ -5,7 +5,6 @@ import { StepProfile } from '@/components/cv/StepProfile';
 import { StepExperience } from '@/components/cv/StepExperience';
 import { StepEducation } from '@/components/cv/StepEducation';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
-import { StepProjects } from '@/components/cv/StepProjects';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, RotateCcw, Users, Shield, LogOut, Loader2, FlaskConical } from 'lucide-react';
@@ -13,14 +12,7 @@ import { sampleCVData } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 
-const STEPS = [
-  'Perfil',
-  'Experiencia',
-  'Educación',
-  'Competencias',
-  'Proyectos',
-  'Vista Previa',
-];
+const STEPS = ['Perfil', 'Experiencia', 'Educación', 'Competencias', 'Vista Previa'];
 
 function WizardContent() {
   const { currentStep, setCurrentStep, resetData, saving, loaded, updateData } = useCV();
@@ -46,7 +38,7 @@ function WizardContent() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
@@ -82,7 +74,7 @@ function WizardContent() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 pt-4 pb-8">
+      <main className="max-w-6xl mx-auto px-6 pt-4 pb-8">
         <StepIndicator currentStep={currentStep} steps={STEPS} onStepClick={setCurrentStep} />
         <div className="min-h-[400px]">{stepComponents[currentStep]}</div>
         <div className="flex items-center justify-between mt-8 pt-6 border-t">

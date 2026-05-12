@@ -60,69 +60,44 @@ export function CVPreview({
       style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.45' }}
     >
       <div
-        className="flex items-center justify-between px-5 py-2 border-b-2 border-[#1e40af] bg-white"
+        className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3 border-b-2 border-[#1e40af] bg-white"
         data-pdf-atomic
       >
-        <div className="flex items-center gap-2">
-          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-6 w-auto" />
-          <p className="text-[9px] font-medium text-gray-700">Europass CV</p>
+        <div className="flex items-center justify-start">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-11 w-auto sm:h-12" />
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-right">
-            {showName && (
-              <h1 className="text-[18px] font-bold leading-tight text-gray-900">
-                {professionalProfile.fullName || 'Nombre Completo'}
-              </h1>
-            )}
-            <p className="text-[11px] font-semibold text-[#1e40af] mt-0.5 leading-tight">
-              {professionalProfile.jobTitle || 'Puesto'}
-            </p>
-            {showProposalHeader && (
-              <div className="mt-1 max-w-[min(100%,360px)] ml-auto text-right space-y-0.5">
-                {tenderLabel?.trim() && (
-                  <p className="text-[9px] font-medium text-gray-600 leading-tight">{tenderLabel}</p>
-                )}
-                <p
-                  className={[
-                    'text-[14px] font-bold leading-tight tracking-tight',
-                    isLead ? 'text-[#0f172a]' : 'text-[#1e40af]',
-                  ].join(' ')}
-                >
-                  {roleLabel(role)}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            {personalInfo.photo && personalInfo.showPersonalInfo && (
-              <img
-                src={personalInfo.photo}
-                alt=""
-                className="w-16 h-16 rounded-full object-cover border-2"
-                style={{ borderColor: COLOR_PRIMARY }}
-              />
-            )}
-            <div className="text-right">
-              {personalInfo.showName && (
-                <h1 className="text-2xl font-extrabold" style={{ color: COLOR_PRIMARY, lineHeight: 1.1 }}>
-                  {personalInfo.fullName || 'Nombre Completo'}
-                </h1>
+        <div className="flex flex-col items-center justify-center text-center min-w-0 px-1">
+          <p className="text-[12px] sm:text-sm font-bold tracking-wide text-[#1e3a5f] uppercase">
+            Europass CV
+          </p>
+          <p className="text-[10px] text-gray-600 mt-0.5 hidden sm:block">Curriculum vitae europeo</p>
+        </div>
+
+        <div className="text-right min-w-0 justify-self-end max-w-[min(100%,280px)] sm:max-w-[min(100%,360px)]">
+          {showName && (
+            <h1 className="text-[16px] sm:text-[18px] font-bold leading-tight text-gray-900">
+              {professionalProfile.fullName || 'Nombre Completo'}
+            </h1>
+          )}
+          <p className="text-[10px] sm:text-[11px] font-semibold text-[#1e40af] mt-0.5 leading-tight">
+            {professionalProfile.jobTitle || 'Puesto'}
+          </p>
+          {showProposalHeader && (
+            <div className="mt-1 space-y-0.5">
+              {tenderLabel?.trim() && (
+                <p className="text-[9px] font-medium text-gray-600 leading-tight">{tenderLabel}</p>
               )}
-              <p className="text-sm font-semibold mt-0.5" style={{ color: COLOR_ACCENT }}>
-                {professionalProfile.jobTitle || 'Puesto'}
+              <p
+                className={[
+                  'text-[13px] sm:text-[14px] font-bold leading-tight tracking-tight',
+                  isLead ? 'text-[#0f172a]' : 'text-[#1e40af]',
+                ].join(' ')}
+              >
+                {roleLabel(role)}
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Role selector */}
-        <div className="mt-4 flex items-center gap-8">
-          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: COLOR_PRIMARY }}>
-            Participante en el desarrollo del contrato:
-          </p>
-          <RoleCheck label="Responsable principal" checked={role === 'principal'} />
-          <RoleCheck label="Miembro del equipo" checked={role === 'miembro'} />
+          )}
         </div>
       </div>
 
@@ -190,12 +165,7 @@ export function CVPreview({
                       {exp.teamDescription ? ` — ${exp.teamDescription}` : ''}
                     </p>
                   )}
-                  {exp.sector && (
-                    <p className="text-[10.5px]" style={{ color: COLOR_MUTED }}>
-                      <span className="font-semibold">Sector:</span> {exp.sector}
-                    </p>
-                  )}
-                </article>
+                </div>
               ))}
             </section>
           )}
@@ -221,15 +191,6 @@ export function CVPreview({
                 </div>
               ))}
             </section>
-          )}
-
-          {(competencies.technicalSkills || competencies.socialSkills || competencies.organizationalSkills || competencies.otherSkills) && (
-            <Section title="Capacidades y competencias">
-              {competencies.technicalSkills && <CompBlock label="Técnicas" text={competencies.technicalSkills} />}
-              {competencies.socialSkills && <CompBlock label="Sociales" text={competencies.socialSkills} />}
-              {competencies.organizationalSkills && <CompBlock label="Organizativas" text={competencies.organizationalSkills} />}
-              {competencies.otherSkills && <CompBlock label="Otras" text={competencies.otherSkills} />}
-            </Section>
           )}
 
           {(competencies.motherTongue || competencies.languages.length > 0) && (

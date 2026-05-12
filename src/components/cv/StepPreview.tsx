@@ -2,14 +2,18 @@ import { useCV } from '@/contexts/CVContext';
 import { CVPreview } from './CVPreview';
 import { CVPreviewFrame } from './CVPreviewFrame';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { FileDown, FileText } from 'lucide-react';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
 import { buildCvDocxParagraphs } from '@/lib/cvDocx';
+import { ProposalRole } from '@/types/cv';
+import { cn } from '@/lib/utils';
 
 export function StepPreview() {
-  const { data } = useCV();
+  const { data, updateData } = useCV();
+  const role = data.role;
 
-  const setRole = (r: ProjectRole) => updateData({ projectRole: r });
+  const setRole = (r: ProposalRole) => updateData({ role: r });
 
   const exportPDF = async () => {
     const el = document.getElementById('cv-preview');
@@ -45,7 +49,7 @@ export function StepPreview() {
 
       <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/40">
         <Label className="text-sm font-semibold">Rol en este proyecto:</Label>
-        {(['principal', 'miembro'] as ProjectRole[]).map((r) => (
+        {(['lead', 'member'] as ProposalRole[]).map((r) => (
           <button
             key={r}
             type="button"
@@ -57,7 +61,7 @@ export function StepPreview() {
                 : 'border-border bg-background hover:border-primary/40',
             )}
           >
-            {r === 'principal' ? 'Responsable principal' : 'Miembro del equipo'}
+            {r === 'lead' ? 'Responsable principal' : 'Miembro del equipo'}
           </button>
         ))}
         <span className="text-xs text-muted-foreground">Cámbialo antes de exportar para distintas licitaciones.</span>
