@@ -161,7 +161,7 @@ export function StepPreview() {
 
     if (compSections.length > 0) {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'COMPETENCIAS', bold: true, color: '3B82D6', size: 20 })],
+        children: [new TextRun({ text: 'CAPACIDADES Y COMPETENCIAS', bold: true, color: '1F4E8C', size: 22 })],
       }));
       compSections.forEach(([label, value]) => {
         children.push(new Paragraph({
@@ -170,6 +170,29 @@ export function StepPreview() {
             new TextRun({ text: value as string, size: 20 }),
           ],
         }));
+      });
+      children.push(new Paragraph({ text: '' }));
+    }
+
+    // Projects
+    const projects = data.projects ?? [];
+    if (projects.length > 0) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: 'PROYECTOS', bold: true, color: '1F4E8C', size: 22 })],
+      }));
+      projects.forEach((p) => {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: p.name, bold: true, size: 22 })],
+        }));
+        if (p.client || p.sector) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: `${p.client ? 'Cliente: ' + p.client : ''}${p.client && p.sector ? ' · ' : ''}${p.sector ? 'Sector: ' + p.sector : ''}`, size: 18 })],
+          }));
+        }
+        if (p.role) children.push(new Paragraph({ children: [new TextRun({ text: 'Rol: ', bold: true, size: 18 }), new TextRun({ text: p.role, size: 18 })] }));
+        if (p.description) children.push(new Paragraph({ children: [new TextRun({ text: p.description, size: 20 })] }));
+        if (p.technologies) children.push(new Paragraph({ children: [new TextRun({ text: 'Tecnologías: ', bold: true, size: 18 }), new TextRun({ text: p.technologies, size: 18 })] }));
+        children.push(new Paragraph({ text: '' }));
       });
     }
 
