@@ -40,7 +40,14 @@ export function StepPreview() {
       heading: HeadingLevel.HEADING_1,
     }));
     children.push(new Paragraph({
-      children: [new TextRun({ text: data.professionalProfile.jobTitle || '', color: '3B82D6', size: 24 })],
+      children: [new TextRun({ text: data.professionalProfile.jobTitle || '', color: '1F4E8C', size: 24, bold: true })],
+    }));
+    children.push(new Paragraph({
+      children: [new TextRun({
+        text: `Participante en el desarrollo del contrato: ${role === 'principal' ? '☒ Responsable principal   ☐ Miembro del equipo' : '☐ Responsable principal   ☒ Miembro del equipo'}`,
+        size: 20,
+        bold: true,
+      })],
     }));
     children.push(new Paragraph({ text: '' }));
 
