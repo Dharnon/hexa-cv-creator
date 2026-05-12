@@ -190,9 +190,30 @@ export function StepPreview() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/40">
+        <Label className="text-sm font-semibold">Rol en este proyecto:</Label>
+        {(['principal', 'miembro'] as ProjectRole[]).map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRole(r)}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
+              role === r
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background hover:border-primary/40',
+            )}
+          >
+            {r === 'principal' ? 'Responsable principal' : 'Miembro del equipo'}
+          </button>
+        ))}
+        <span className="text-xs text-muted-foreground">Cámbialo antes de exportar para distintas licitaciones.</span>
+      </div>
+
       <CVPreviewFrame>
         <CVPreview data={data} />
       </CVPreviewFrame>
     </div>
   );
 }
+
