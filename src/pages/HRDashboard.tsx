@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CVData } from '@/types/cv';
+import { CVData, ProjectRole } from '@/types/cv';
 import { CVPreview } from '@/components/cv/CVPreview';
 import { CVPreviewFrame } from '@/components/cv/CVPreviewFrame';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
@@ -46,9 +46,14 @@ export default function HRDashboard() {
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
   const [pdfRenderData, setPdfRenderData] = useState<CVData | null>(null);
-  const [globalPreviewOptions, setGlobalPreviewOptions] = useState({
+  const [globalPreviewOptions, setGlobalPreviewOptions] = useState<{
+    showName: boolean;
+    showPersonalInfo: boolean;
+    projectRole: ProjectRole | 'auto';
+  }>({
     showName: true,
     showPersonalInfo: true,
+    projectRole: 'auto',
   });
 
   useEffect(() => {
@@ -90,6 +95,10 @@ export default function HRDashboard() {
       showName: globalPreviewOptions.showName,
       showPersonalInfo: globalPreviewOptions.showPersonalInfo,
     },
+    projectRole:
+      globalPreviewOptions.projectRole === 'auto'
+        ? (cvData.projectRole ?? 'miembro')
+        : globalPreviewOptions.projectRole,
   });
 
   const exportPDF = async (cvData: CVData, name: string) => {
