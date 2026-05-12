@@ -112,9 +112,17 @@ export function StepPreview() {
             ],
           }));
         }
+        if (exp.methodologies) {
+          children.push(new Paragraph({
+            children: [
+              new TextRun({ text: 'Metodologías: ', bold: true, size: 18 }),
+              new TextRun({ text: exp.methodologies, size: 18 }),
+            ],
+          }));
+        }
         if (exp.isManager) {
           children.push(new Paragraph({
-            children: [new TextRun({ text: `Responsable de equipo: ${exp.peopleManaged} personas${exp.teamDescription ? ' — ' + exp.teamDescription : ''}`, italics: true, size: 18 })],
+            children: [new TextRun({ text: `Personas a cargo: ${exp.peopleManaged}${exp.teamDescription ? ' — ' + exp.teamDescription : ''}`, italics: true, size: 18 })],
           }));
         }
         children.push(new Paragraph({ text: '' }));
