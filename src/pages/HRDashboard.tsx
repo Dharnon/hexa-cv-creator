@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { CVData } from '@/types/cv';
+import { normalizeCVData } from '@/lib/normalizeCVData';
 import { CVPreview } from '@/components/cv/CVPreview';
 import { CVPreviewFrame } from '@/components/cv/CVPreviewFrame';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
@@ -17,6 +18,7 @@ import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
+import { buildCvDocxParagraphs } from '@/lib/cvDocx';
 
 interface EmployeeCV {
   user_id: string;
@@ -24,17 +26,6 @@ interface EmployeeCV {
   email: string;
   data: CVData | null;
   updated_at: string;
-}
-
-function normalizeCVData(cvData: CVData): CVData {
-  return {
-    ...cvData,
-    personalInfo: {
-      ...cvData.personalInfo,
-      showName: cvData.personalInfo.showName ?? true,
-      showPersonalInfo: cvData.personalInfo.showPersonalInfo ?? true,
-    },
-  };
 }
 
 export default function HRDashboard() {
@@ -57,24 +48,36 @@ export default function HRDashboard() {
 
   const loadEmployees = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: cvs } = await supabase.from('cv_data').select('*');
+    try {
+      const res = await apiFetch('/api/hr/employees');
+      if (!res.ok) {
+        toast.error('No se pudieron cargar los empleados');
+        setEmployees([]);
+        return;
+      }
+      const rows = (await res.json()) as Array<{
+        user_id: string;
+        full_name: string;
+        email: string;
+        data: CVData | null;
+        updated_at: string;
+      }>;
 
-    const cvMap = new Map(cvs?.map((cv) => [cv.user_id, cv]) ?? []);
+      const merged: EmployeeCV[] = rows.map((row) => ({
+        user_id: row.user_id,
+        full_name: row.full_name,
+        email: row.email,
+        data: row.data ? normalizeCVData(row.data as CVData) : null,
+        updated_at: row.updated_at,
+      }));
 
-    const merged: EmployeeCV[] = (profiles ?? []).map((profile) => {
-      const cv = cvMap.get(profile.user_id);
-      return {
-        user_id: profile.user_id,
-        full_name: profile.full_name || profile.email,
-        email: profile.email,
-        data: cv ? normalizeCVData(cv.data as unknown as CVData) : null,
-        updated_at: cv?.updated_at ?? profile.created_at,
-      };
-    });
-
-    setEmployees(merged);
-    setLoading(false);
+      setEmployees(merged);
+    } catch {
+      toast.error('Error de conexión con el servidor');
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = employees.filter(
@@ -113,126 +116,11 @@ export default function HRDashboard() {
   };
 
   const exportWord = async (cvData: CVData, name: string) => {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+    const { Document, Packer } = await import('docx');
     const { saveAs } = await import('file-saver');
     const normalized = normalizeCVData(cvData);
     const preparedData = applyGlobalPreviewOptions(normalized);
-
-    const sortedExperience = [...preparedData.workExperience].sort((a, b) =>
-      b.startDate.localeCompare(a.startDate),
-    );
-    const sortedEducation = [...preparedData.education].sort((a, b) =>
-      b.startDate.localeCompare(a.startDate),
-    );
-    const children: InstanceType<typeof Paragraph>[] = [];
-
-    if (preparedData.personalInfo.showName) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: preparedData.personalInfo.fullName || name, bold: true, size: 32 }),
-          ],
-          heading: HeadingLevel.HEADING_1,
-        }),
-      );
-    }
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: preparedData.professionalProfile.jobTitle || '',
-            color: '3B82D6',
-            size: 24,
-          }),
-        ],
-      }),
-    );
-    children.push(new Paragraph({ text: '' }));
-
-    if (preparedData.personalInfo.showPersonalInfo) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'INFORMACION PERSONAL', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      [['Email', preparedData.personalInfo.email], ['Telefono', preparedData.personalInfo.phone], ['Direccion', preparedData.personalInfo.address]]
-        .filter(([, value]) => value)
-        .forEach(([label, value]) => {
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({ text: `${label}: `, bold: true, size: 20 }),
-                new TextRun({ text: value as string, size: 20 }),
-              ],
-            }),
-          );
-        });
-      children.push(new Paragraph({ text: '' }));
-    }
-
-    if (sortedExperience.length > 0) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'EXPERIENCIA LABORAL', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      sortedExperience.forEach((experience) => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: experience.jobTitle, bold: true, size: 20 }),
-              new TextRun({ text: ` - ${experience.company}`, size: 20 }),
-            ],
-          }),
-        );
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `${experience.startDate} - ${experience.isCurrentJob ? 'Actualidad' : experience.endDate}`,
-                italics: true,
-                size: 18,
-              }),
-            ],
-          }),
-        );
-        experience.responsibilities.filter(Boolean).forEach((responsibility) => {
-          children.push(
-            new Paragraph({
-              children: [new TextRun({ text: `- ${responsibility}`, size: 20 })],
-              indent: { left: 360 },
-            }),
-          );
-        });
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
-    if (sortedEducation.length > 0) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'EDUCACION Y FORMACION', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      sortedEducation.forEach((education) => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: education.qualification, bold: true, size: 20 }),
-              new TextRun({ text: ` - ${education.institution}`, size: 20 }),
-            ],
-          }),
-        );
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
+    const children = await buildCvDocxParagraphs(preparedData);
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `CV_${name.replace(/\s+/g, '_')}.docx`);

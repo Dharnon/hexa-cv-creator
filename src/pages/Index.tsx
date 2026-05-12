@@ -5,6 +5,7 @@ import { StepPersonalInfo } from '@/components/cv/StepPersonalInfo';
 import { StepProfile } from '@/components/cv/StepProfile';
 import { StepExperience } from '@/components/cv/StepExperience';
 import { StepEducation } from '@/components/cv/StepEducation';
+import { StepProjects } from '@/components/cv/StepProjects';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ const STEPS = [
   'Perfil',
   'Experiencia',
   'Educación',
+  'Proyectos',
   'Competencias',
   'Vista Previa',
 ];
@@ -32,8 +34,9 @@ function WizardContent() {
     <StepProfile key={1} />,
     <StepExperience key={2} />,
     <StepEducation key={3} />,
-    <StepCompetencies key={4} />,
-    <StepPreview key={5} />,
+    <StepProjects key={4} />,
+    <StepCompetencies key={5} />,
+    <StepPreview key={6} />,
   ];
 
   if (!loaded) {

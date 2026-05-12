@@ -8,7 +8,8 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep, steps, onStepClick }: StepIndicatorProps) {
   return (
-    <div className="w-full mb-8">
+    <div className="w-full mb-8 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+      <div className="min-w-[min(100%,720px)]">
       <div className="flex items-center justify-between">
         {steps.map((label, i) => (
           <div key={i} className="flex items-center flex-1 last:flex-none">
@@ -32,16 +33,17 @@ export function StepIndicator({ currentStep, steps, onStepClick }: StepIndicator
           </div>
         ))}
       </div>
-      <div className="flex justify-between mt-2">
+      <div className="flex justify-between mt-2 gap-1">
         {steps.map((label, i) => (
           <span key={i} className={cn(
-            "text-xs text-center",
+            "text-[10px] sm:text-xs text-center leading-tight px-0.5 min-w-0",
             i === currentStep ? "text-primary font-medium" : "text-muted-foreground",
             i === 0 ? "text-left" : i === steps.length - 1 ? "text-right" : ""
           )} style={{ width: `${100 / steps.length}%` }}>
             {label}
           </span>
         ))}
+      </div>
       </div>
     </div>
   );

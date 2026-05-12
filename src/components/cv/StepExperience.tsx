@@ -1,7 +1,6 @@
 import { useCV } from '@/contexts/CVContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +27,7 @@ export function StepExperience() {
       location: '',
       responsibilities: [''],
       technologies: '',
+      methodologies: '',
       sector: '',
       isManager: false,
       peopleManaged: 0,
@@ -36,20 +36,18 @@ export function StepExperience() {
     updateData({ workExperience: [...experiences, newExp] });
   };
 
-  const updateExp = (id: string, field: string, value: any) => {
+  const updateExp = (id: string, field: string, value: unknown) => {
     updateData({
-      workExperience: experiences.map(e =>
-        e.id === id ? { ...e, [field]: value } : e
-      ),
+      workExperience: experiences.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
     });
   };
 
   const removeExp = (id: string) => {
-    updateData({ workExperience: experiences.filter(e => e.id !== id) });
+    updateData({ workExperience: experiences.filter((e) => e.id !== id) });
   };
 
   const updateResponsibility = (expId: string, index: number, value: string) => {
-    const exp = experiences.find(e => e.id === expId);
+    const exp = experiences.find((e) => e.id === expId);
     if (!exp) return;
     const newResp = [...exp.responsibilities];
     newResp[index] = value;
@@ -57,18 +55,17 @@ export function StepExperience() {
   };
 
   const addResponsibility = (expId: string) => {
-    const exp = experiences.find(e => e.id === expId);
+    const exp = experiences.find((e) => e.id === expId);
     if (!exp) return;
     updateExp(expId, 'responsibilities', [...exp.responsibilities, '']);
   };
 
   const removeResponsibility = (expId: string, index: number) => {
-    const exp = experiences.find(e => e.id === expId);
+    const exp = experiences.find((e) => e.id === expId);
     if (!exp) return;
     updateExp(expId, 'responsibilities', exp.responsibilities.filter((_, i) => i !== index));
   };
 
-  // Auto-sort by start date descending
   const sortedExperiences = [...experiences].sort((a, b) => {
     if (!a.startDate || !b.startDate) return 0;
     return b.startDate.localeCompare(a.startDate);
@@ -78,8 +75,10 @@ export function StepExperience() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Experiencia Laboral</h2>
-          <p className="text-sm text-muted-foreground mt-1">Se ordena automáticamente por fecha (más reciente primero)</p>
+          <h2 className="text-xl font-semibold text-foreground">Experiencia laboral</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Orden por fecha (más reciente primero). Prioriza funciones, tecnologías y metodologías frente a empresa y sector.
+          </p>
         </div>
         <Button onClick={addExperience} size="sm">
           <Plus className="w-4 h-4 mr-1" /> Añadir
@@ -131,32 +130,19 @@ export function StepExperience() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Puesto *</Label>
-                <Input value={exp.jobTitle} onChange={(e) => updateExp(exp.id, 'jobTitle', e.target.value)} placeholder="Ingeniero de Proyectos" />
+              <div className="space-y-2 md:col-span-2">
+                <Label>Profesión / puesto *</Label>
+                <Input
+                  value={exp.jobTitle}
+                  onChange={(e) => updateExp(exp.id, 'jobTitle', e.target.value)}
+                  placeholder="Ingeniero de Proyectos"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Empresa *</Label>
-                <Input value={exp.company} onChange={(e) => updateExp(exp.id, 'company', e.target.value)} placeholder="Hexa Ingenieros" />
-              </div>
-              <div className="space-y-2">
-                <Label>Ubicación</Label>
-                <Input value={exp.location} onChange={(e) => updateExp(exp.id, 'location', e.target.value)} placeholder="Madrid, España" />
-              </div>
-              <div className="space-y-2">
-                <Label>Sector</Label>
-                <Input value={exp.sector} onChange={(e) => updateExp(exp.id, 'sector', e.target.value)} placeholder="Ingeniería / Energía" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tecnologías / Herramientas</Label>
-              <Input value={exp.technologies} onChange={(e) => updateExp(exp.id, 'technologies', e.target.value)} placeholder="AutoCAD, MS Project, SAP..." />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Responsabilidades</Label>
+                <Label>Funciones y responsabilidades</Label>
                 <Button variant="ghost" size="sm" onClick={() => addResponsibility(exp.id)}>
                   <Plus className="w-3 h-3 mr-1" /> Añadir
                 </Button>
@@ -166,7 +152,7 @@ export function StepExperience() {
                   <Input
                     value={resp}
                     onChange={(e) => updateResponsibility(exp.id, ri, e.target.value)}
-                    placeholder="Descripción de la responsabilidad..."
+                    placeholder="Descripción..."
                   />
                   {exp.responsibilities.length > 1 && (
                     <Button variant="ghost" size="icon" onClick={() => removeResponsibility(exp.id, ri)}>
@@ -177,11 +163,45 @@ export function StepExperience() {
               ))}
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tecnologías</Label>
+                <Input
+                  value={exp.technologies}
+                  onChange={(e) => updateExp(exp.id, 'technologies', e.target.value)}
+                  placeholder="AutoCAD, MS Project, SAP..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Metodologías</Label>
+                <Input
+                  value={exp.methodologies}
+                  onChange={(e) => updateExp(exp.id, 'methodologies', e.target.value)}
+                  placeholder="PMI, BIM, agile..."
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Empresa y contexto</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Empresa</Label>
+                  <Input value={exp.company} onChange={(e) => updateExp(exp.id, 'company', e.target.value)} placeholder="Hexa Ingenieros" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ubicación</Label>
+                  <Input value={exp.location} onChange={(e) => updateExp(exp.id, 'location', e.target.value)} placeholder="Madrid" />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Sector</Label>
+                  <Input value={exp.sector} onChange={(e) => updateExp(exp.id, 'sector', e.target.value)} placeholder="Ingeniería / Energía" />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Switch
-                checked={exp.isManager}
-                onCheckedChange={(v) => updateExp(exp.id, 'isManager', v)}
-              />
+              <Switch checked={exp.isManager} onCheckedChange={(v) => updateExp(exp.id, 'isManager', v)} />
               <Label className="text-sm">Puesto de responsable / gestión de equipo</Label>
             </div>
 
@@ -201,7 +221,7 @@ export function StepExperience() {
                   <Input
                     value={exp.teamDescription}
                     onChange={(e) => updateExp(exp.id, 'teamDescription', e.target.value)}
-                    placeholder="Equipo multidisciplinar de ingeniería..."
+                    placeholder="Equipo multidisciplinar..."
                   />
                 </div>
               </div>

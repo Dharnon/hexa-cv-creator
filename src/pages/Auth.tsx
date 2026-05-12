@@ -31,7 +31,7 @@ export default function Auth() {
     if (result.error) {
       toast.error(result.error);
     } else if (!isLogin) {
-      toast.success('Cuenta creada. Revisa tu correo para verificar tu cuenta.');
+      toast.success('Cuenta creada. Ya puedes usar el generador de CV.');
       setIsLogin(true);
     }
   };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,33 +24,37 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [addingRole, setAddingRole] = useState<{ userId: string; role: string } | null>(null);
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const loadUsers = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: roles } = await supabase.from('user_roles').select('*');
-
-    const roleMap = new Map<string, string[]>();
-    roles?.forEach(r => {
-      const existing = roleMap.get(r.user_id) ?? [];
-      existing.push(r.role);
-      roleMap.set(r.user_id, existing);
-    });
-
-    setUsers((profiles ?? []).map(p => ({
-      user_id: p.user_id,
-      full_name: p.full_name || p.email,
-      email: p.email,
-      roles: roleMap.get(p.user_id) ?? [],
-    })));
-    setLoading(false);
+    try {
+      const res = await apiFetch('/api/admin/users');
+      if (!res.ok) {
+        toast.error('No se pudieron cargar los usuarios');
+        setUsers([]);
+        return;
+      }
+      const data = (await res.json()) as UserWithRoles[];
+      setUsers(data);
+    } catch {
+      toast.error('Error de conexión');
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: role as any });
-    if (error) {
-      toast.error(error.message.includes('duplicate') ? 'El usuario ya tiene este rol' : error.message);
+    const res = await apiFetch(`/api/admin/users/${userId}/roles`, {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error((body as { error?: string }).error ?? 'Error al añadir rol');
     } else {
       toast.success('Rol añadido');
       loadUsers();
@@ -58,9 +62,12 @@ export default function AdminPanel() {
   };
 
   const removeRole = async (userId: string, role: string) => {
-    const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role as any);
-    if (error) {
-      toast.error(error.message);
+    const res = await apiFetch(`/api/admin/users/${userId}/roles/${encodeURIComponent(role)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error((body as { error?: string }).error ?? 'Error al quitar rol');
     } else {
       toast.success('Rol eliminado');
       loadUsers();
@@ -80,16 +87,16 @@ export default function AdminPanel() {
           <div className="flex items-center gap-3">
             <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
-              <p className="font-semibold text-foreground flex items-center gap-1"><Shield className="w-4 h-4" /> Panel de Administración</p>
-              <p className="text-xs text-muted-foreground">Gestión de roles de usuario</p>
+              <p className="font-semibold text-foreground">Panel de administración</p>
+              <p className="text-xs text-muted-foreground">Roles de usuario</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-1" /> Volver
+              <ArrowLeft className="w-4 h-4 mr-1" /> Inicio
             </Button>
             <Button variant="outline" size="sm" onClick={signOut}>
-              Cerrar Sesión
+              Cerrar sesión
             </Button>
           </div>
         </div>
@@ -98,42 +105,74 @@ export default function AdminPanel() {
       <main className="max-w-5xl mx-auto px-6 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Usuarios y Roles</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" /> Usuarios y roles
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <p className="text-muted-foreground">Cargando...</p>
             ) : (
               <div className="space-y-4">
-                {users.map(u => (
-                  <div key={u.user_id} className="flex items-center justify-between py-3 border-b last:border-0">
+                {users.map((u) => (
+                  <div
+                    key={u.user_id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 border-b last:border-0"
+                  >
                     <div>
-                      <p className="font-medium text-foreground">{u.full_name}</p>
+                      <p className="font-medium">{u.full_name}</p>
                       <p className="text-sm text-muted-foreground">{u.email}</p>
-                      <div className="flex gap-1 mt-1">
-                        {u.roles.map(r => (
-                          <Badge key={r} className={`${roleColors[r] ?? ''} gap-1`}>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {u.roles.map((r) => (
+                          <Badge key={r} className={roleColors[r] ?? ''}>
                             {r}
-                            <button onClick={() => removeRole(u.user_id, r)} className="hover:opacity-70">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
                           </Badge>
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Select onValueChange={v => addRole(u.user_id, v)}>
-                        <SelectTrigger className="w-32">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select
+                        value={addingRole?.userId === u.user_id ? addingRole.role : ''}
+                        onValueChange={(role) => setAddingRole({ userId: u.user_id, role })}
+                      >
+                        <SelectTrigger className="w-[140px]">
                           <SelectValue placeholder="Añadir rol" />
                         </SelectTrigger>
                         <SelectContent>
-                          {['admin', 'hr', 'employee']
-                            .filter(r => !u.roles.includes(r))
-                            .map(r => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                          {(['hr', 'admin', 'employee'] as const)
+                            .filter((r) => !u.roles.includes(r))
+                            .map((r) => (
+                              <SelectItem key={r} value={r}>
+                                {r}
+                              </SelectItem>
                             ))}
                         </SelectContent>
                       </Select>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!addingRole || addingRole.userId !== u.user_id}
+                        onClick={() => {
+                          if (addingRole?.userId === u.user_id) {
+                            addRole(u.user_id, addingRole.role);
+                            setAddingRole(null);
+                          }
+                        }}
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" /> Añadir
+                      </Button>
+                      {u.roles
+                        .filter((r) => r !== 'employee')
+                        .map((r) => (
+                          <Button
+                            key={r}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeRole(u.user_id, r)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" /> Quitar {r}
+                          </Button>
+                        ))}
                     </div>
                   </div>
                 ))}

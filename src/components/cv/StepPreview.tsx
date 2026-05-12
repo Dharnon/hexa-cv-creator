@@ -1,17 +1,64 @@
+import { useState } from 'react';
 import { useCV } from '@/contexts/CVContext';
 import { CVPreview } from './CVPreview';
 import { CVPreviewFrame } from './CVPreviewFrame';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { FileDown, FileText } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { FileDown, FileText, Trash2 } from 'lucide-react';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
+import { buildCvDocxParagraphs } from '@/lib/cvDocx';
+import type { ProposalRole } from '@/types/cv';
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 11);
+}
 
 export function StepPreview() {
   const { data, updateData } = useCV();
+  const [newProposalLabel, setNewProposalLabel] = useState('');
+  const [newProposalRole, setNewProposalRole] = useState<ProposalRole>('member');
 
   const togglePersonalInfo = (v: boolean) => {
     updateData({ personalInfo: { ...data.personalInfo, showPersonalInfo: v } });
+  };
+
+  const pp = data.proposalPresentation;
+
+  const setActiveEntry = (id: string) => {
+    updateData({ proposalPresentation: { ...pp, activeEntryId: id } });
+  };
+
+  const addProposalEntry = () => {
+    const label = newProposalLabel.trim() || 'Propuesta';
+    const id = generateId();
+    updateData({
+      proposalPresentation: {
+        entries: [...pp.entries, { id, label, role: newProposalRole }],
+        activeEntryId: id,
+      },
+    });
+    setNewProposalLabel('');
+    setNewProposalRole('member');
+  };
+
+  const removeProposalEntry = (id: string) => {
+    if (pp.entries.length <= 1) return;
+    const entries = pp.entries.filter((e) => e.id !== id);
+    const activeEntryId = entries.some((e) => e.id === pp.activeEntryId)
+      ? pp.activeEntryId!
+      : entries[0].id;
+    updateData({ proposalPresentation: { entries, activeEntryId } });
   };
 
   const exportPDF = async () => {
@@ -21,142 +68,10 @@ export function StepPreview() {
   };
 
   const exportWord = async () => {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
+    const { Document, Packer } = await import('docx');
     const { saveAs } = await import('file-saver');
-
-    const sortedExp = [...data.workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
-    const sortedEdu = [...data.education].sort((a, b) => b.startDate.localeCompare(a.startDate));
-
-    const children: any[] = [];
-
-    // Header
-    children.push(new Paragraph({
-      children: [new TextRun({ text: data.personalInfo.fullName || 'Nombre', bold: true, size: 32 })],
-      heading: HeadingLevel.HEADING_1,
-    }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: data.professionalProfile.jobTitle || '', color: '3B82D6', size: 24 })],
-    }));
-    children.push(new Paragraph({ text: '' }));
-
-    // Personal info
-    if (data.personalInfo.showPersonalInfo) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'INFORMACIÓN PERSONAL', bold: true, color: '3B82D6', size: 20 })],
-      }));
-      const fields = [
-        ['Email', data.personalInfo.email],
-        ['Teléfono', data.personalInfo.phone],
-        ['Dirección', data.personalInfo.address],
-        ['LinkedIn', data.personalInfo.linkedin],
-        ['Nacionalidad', data.personalInfo.nationality],
-      ].filter(([, v]) => v);
-      fields.forEach(([label, value]) => {
-        children.push(new Paragraph({
-          children: [
-            new TextRun({ text: `${label}: `, bold: true, size: 20 }),
-            new TextRun({ text: value as string, size: 20 }),
-          ],
-        }));
-      });
-      children.push(new Paragraph({ text: '' }));
-    }
-
-    // Summary
-    if (data.professionalProfile.summary) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'PERFIL PROFESIONAL', bold: true, color: '3B82D6', size: 20 })],
-      }));
-      children.push(new Paragraph({ children: [new TextRun({ text: data.professionalProfile.summary, size: 20 })] }));
-      children.push(new Paragraph({ text: '' }));
-    }
-
-    // Experience
-    if (sortedExp.length > 0) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'EXPERIENCIA LABORAL', bold: true, color: '3B82D6', size: 20 })],
-      }));
-      sortedExp.forEach(exp => {
-        children.push(new Paragraph({
-          children: [
-            new TextRun({ text: exp.jobTitle, bold: true, size: 20 }),
-            new TextRun({ text: ` — ${exp.company}${exp.location ? ', ' + exp.location : ''}`, size: 20 }),
-          ],
-        }));
-        children.push(new Paragraph({
-          children: [new TextRun({ text: `${exp.startDate} — ${exp.isCurrentJob ? 'Actualidad' : exp.endDate}`, italics: true, size: 18 })],
-        }));
-        exp.responsibilities.filter(Boolean).forEach(r => {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: `• ${r}`, size: 20 })],
-            indent: { left: 360 },
-          }));
-        });
-        if (exp.technologies) {
-          children.push(new Paragraph({
-            children: [
-              new TextRun({ text: 'Tecnologías: ', bold: true, size: 18 }),
-              new TextRun({ text: exp.technologies, size: 18 }),
-            ],
-          }));
-        }
-        if (exp.isManager) {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: `Responsable de equipo: ${exp.peopleManaged} personas${exp.teamDescription ? ' — ' + exp.teamDescription : ''}`, italics: true, size: 18 })],
-          }));
-        }
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
-    // Education
-    if (sortedEdu.length > 0) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'EDUCACIÓN Y FORMACIÓN', bold: true, color: '3B82D6', size: 20 })],
-      }));
-      sortedEdu.forEach(ed => {
-        children.push(new Paragraph({
-          children: [
-            new TextRun({ text: ed.qualification, bold: true, size: 20 }),
-            new TextRun({ text: ` — ${ed.institution}`, size: 20 }),
-          ],
-        }));
-        children.push(new Paragraph({
-          children: [new TextRun({ text: `${ed.startDate} — ${ed.endDate}`, italics: true, size: 18 })],
-        }));
-        if (ed.subjects) {
-          children.push(new Paragraph({ children: [new TextRun({ text: ed.subjects, size: 18 })] }));
-        }
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
-    // Competencies
-    const compSections = [
-      ['Competencias técnicas', data.competencies.technicalSkills],
-      ['Competencias sociales', data.competencies.socialSkills],
-      ['Competencias organizativas', data.competencies.organizationalSkills],
-      ['Otros', data.competencies.otherSkills],
-    ].filter(([, v]) => v);
-
-    if (compSections.length > 0) {
-      children.push(new Paragraph({
-        children: [new TextRun({ text: 'COMPETENCIAS', bold: true, color: '3B82D6', size: 20 })],
-      }));
-      compSections.forEach(([label, value]) => {
-        children.push(new Paragraph({
-          children: [
-            new TextRun({ text: `${label}: `, bold: true, size: 20 }),
-            new TextRun({ text: value as string, size: 20 }),
-          ],
-        }));
-      });
-    }
-
-    const doc = new Document({
-      sections: [{ children }],
-    });
-
+    const children = await buildCvDocxParagraphs(data);
+    const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `CV_${data.personalInfo.fullName || 'Europass'}.docx`);
   };
@@ -165,7 +80,7 @@ export function StepPreview() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Vista Previa y Exportar</h2>
+          <h2 className="text-xl font-semibold text-foreground">Vista previa y exportar</h2>
           <p className="text-sm text-muted-foreground mt-1">Revisa tu CV y expórtalo</p>
         </div>
         <div className="flex items-center gap-4">
@@ -184,6 +99,86 @@ export function StepPreview() {
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Rol en propuesta (licitación)</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Define cómo te presentas en cada propuesta. Cambia el contexto activo para la vista previa y el PDF.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-2 min-w-[200px] flex-1">
+              <Label className="text-xs">Contexto activo</Label>
+              <Select value={pp.activeEntryId ?? ''} onValueChange={setActiveEntry}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pp.entries.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.label} ({e.role === 'lead' ? 'Responsable principal' : 'Miembro'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="space-y-2 flex-1 min-w-[160px]">
+              <Label className="text-xs">Nueva propuesta / licitación</Label>
+              <Input
+                value={newProposalLabel}
+                onChange={(e) => setNewProposalLabel(e.target.value)}
+                placeholder="Ej. Licitación CNMT 2025"
+              />
+            </div>
+            <RadioGroup
+              value={newProposalRole}
+              onValueChange={(v) => setNewProposalRole(v as ProposalRole)}
+              className="flex gap-4 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="lead" id="r-lead" />
+                <Label htmlFor="r-lead" className="text-sm font-normal">
+                  Responsable principal
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="member" id="r-member" />
+                <Label htmlFor="r-member" className="text-sm font-normal">
+                  Miembro del equipo
+                </Label>
+              </div>
+            </RadioGroup>
+            <Button type="button" size="sm" variant="secondary" onClick={addProposalEntry}>
+              Añadir contexto
+            </Button>
+          </div>
+          <ul className="text-sm space-y-2 border rounded-md p-3 bg-muted/30">
+            {pp.entries.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-2">
+                <span>
+                  <span className="font-medium">{e.label}</span>
+                  <span className="text-muted-foreground">
+                    {' '}
+                    — {e.role === 'lead' ? 'Responsable principal' : 'Miembro del equipo'}
+                  </span>
+                  {e.id === pp.activeEntryId && (
+                    <span className="text-xs text-primary ml-2">(activo)</span>
+                  )}
+                </span>
+                {pp.entries.length > 1 && (
+                  <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => removeProposalEntry(e.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
       <CVPreviewFrame>
         <CVPreview data={data} />

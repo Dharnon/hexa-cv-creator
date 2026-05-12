@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -15,7 +15,12 @@ server/node_modules
 server/dist
 server/.env
 server/.env.production
+server/exports/
 deploy/*.env
+
+cv-server/dist
+cv-server/data
+cv-server/.env
 
 # Editor directories and files
 .vscode/*

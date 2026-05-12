@@ -26,6 +26,7 @@ export interface WorkExperience {
   location: string;
   responsibilities: string[];
   technologies: string;
+  methodologies: string;
   sector: string;
   isManager: boolean;
   peopleManaged: number;
@@ -61,7 +62,39 @@ export interface Competencies {
   socialSkills: string;
   organizationalSkills: string;
   otherSkills: string;
+}
+
+/** Permiso de conducir, viajes, voluntariado y notas (sección OTROS del CV) */
+export interface OthersMisc {
   drivingLicense: string;
+  travelAvailability: string;
+  volunteering: string;
+  extraNotes: string;
+}
+
+export type ProposalRole = 'lead' | 'member';
+
+export interface ProposalEntry {
+  id: string;
+  label: string;
+  role: ProposalRole;
+}
+
+export interface ProposalPresentation {
+  entries: ProposalEntry[];
+  activeEntryId: string | null;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  client: string;
+  startDate: string;
+  endDate: string;
+  isOngoing: boolean;
+  description: string;
+  technologies: string;
+  methodologies: string;
 }
 
 export interface CVData {
@@ -69,8 +102,23 @@ export interface CVData {
   professionalProfile: ProfessionalProfile;
   workExperience: WorkExperience[];
   education: Education[];
+  projects: Project[];
   competencies: Competencies;
+  othersMisc: OthersMisc;
+  proposalPresentation: ProposalPresentation;
 }
+
+export const defaultProposalPresentation: ProposalPresentation = {
+  entries: [{ id: 'default', label: 'General', role: 'member' }],
+  activeEntryId: 'default',
+};
+
+export const defaultOthersMisc: OthersMisc = {
+  drivingLicense: '',
+  travelAvailability: '',
+  volunteering: '',
+  extraNotes: '',
+};
 
 export const defaultCVData: CVData = {
   personalInfo: {
@@ -91,6 +139,7 @@ export const defaultCVData: CVData = {
   },
   workExperience: [],
   education: [],
+  projects: [],
   competencies: {
     motherTongue: '',
     languages: [],
@@ -98,8 +147,9 @@ export const defaultCVData: CVData = {
     socialSkills: '',
     organizationalSkills: '',
     otherSkills: '',
-    drivingLicense: '',
   },
+  othersMisc: { ...defaultOthersMisc },
+  proposalPresentation: { ...defaultProposalPresentation },
 };
 
 export const sampleCVData: CVData = {
@@ -117,7 +167,8 @@ export const sampleCVData: CVData = {
   },
   professionalProfile: {
     jobTitle: 'Ingeniera de Proyectos Senior',
-    summary: 'Ingeniera industrial con más de 10 años de experiencia en gestión de proyectos de infraestructura y energía. Especializada en dirección de equipos multidisciplinares, optimización de procesos y cumplimiento normativo.',
+    summary:
+      'Ingeniera industrial con más de 10 años de experiencia en gestión de proyectos de infraestructura y energía. Especializada en dirección de equipos multidisciplinares, optimización de procesos y cumplimiento normativo.',
   },
   workExperience: [
     {
@@ -134,6 +185,7 @@ export const sampleCVData: CVData = {
         'Elaboración de ofertas técnicas y pliegos de prescripciones para licitaciones públicas',
       ],
       technologies: 'AutoCAD, Revit, MS Project, Primavera P6, SAP',
+      methodologies: 'PMI, gestión de riesgos según ISO 31000, BIM coordination',
       sector: 'Energía e infraestructura',
       isManager: true,
       peopleManaged: 12,
@@ -152,6 +204,7 @@ export const sampleCVData: CVData = {
         'Redacción de informes técnicos y memorias de cálculo estructural',
       ],
       technologies: 'AutoCAD, MATLAB, PVsyst, ETABS',
+      methodologies: 'Scrum adaptado a obra, revisiones de diseño por comité técnico',
       sector: 'Energías renovables',
       isManager: false,
       peopleManaged: 0,
@@ -170,6 +223,7 @@ export const sampleCVData: CVData = {
         'Elaboración de planos y documentación técnica',
       ],
       technologies: 'AutoCAD, CYPE, Robot Structural Analysis',
+      methodologies: 'Metodología BIM nivel 1, control de cambios documental',
       sector: 'Consultoría de ingeniería',
       isManager: false,
       peopleManaged: 0,
@@ -196,6 +250,20 @@ export const sampleCVData: CVData = {
       level: 'Grado (MECES 2)',
     },
   ],
+  projects: [
+    {
+      id: 'proj1',
+      title: 'Parque eólico 220 MW — dirección técnica de interconexión',
+      client: 'Operador del sistema (anonimizado)',
+      startDate: '2022-01',
+      endDate: '2024-06',
+      isOngoing: false,
+      description:
+        'Coordinación de ingeniería de detalle, interfaz con subestación y cumplimiento del código de red.',
+      technologies: 'PTC Mathcad, DIgSILENT, AutoCAD Electrical',
+      methodologies: 'PMI, revisión de diseño HAZOP ligera',
+    },
+  ],
   competencies: {
     motherTongue: 'Español',
     languages: [
@@ -218,10 +286,24 @@ export const sampleCVData: CVData = {
         writing: 'B1',
       },
     ],
-    technicalSkills: 'AutoCAD, Revit, CYPE, MS Project, Primavera P6, MATLAB, SAP. Certificación PMP. Normativa CTE, Eurocódigos y RITE.',
+    technicalSkills:
+      'AutoCAD, Revit, CYPE, MS Project, Primavera P6, MATLAB, SAP. Certificación PMP. Normativa CTE, Eurocódigos y RITE.',
     socialSkills: 'Liderazgo de equipos multidisciplinares. Comunicación eficaz con clientes y administraciones públicas.',
-    organizationalSkills: 'Planificación y control de proyectos con metodología PMI. Gestión simultánea de hasta 4 proyectos.',
-    otherSkills: 'Disponibilidad para viajar. Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
+    organizationalSkills:
+      'Planificación y control de proyectos con metodología PMI. Gestión simultánea de hasta 4 proyectos.',
+    otherSkills: 'Formación interna en seguridad en obra y coordinación de actividades empresariales (CAE).',
+  },
+  othersMisc: {
     drivingLicense: 'B',
+    travelAvailability: 'Disponibilidad nacional e internacional con preaviso.',
+    volunteering: 'Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
+    extraNotes: '',
+  },
+  proposalPresentation: {
+    entries: [
+      { id: 'default', label: 'General', role: 'member' },
+      { id: 'lic1', label: 'Licitación ejemplo — Subestación Norte', role: 'lead' },
+    ],
+    activeEntryId: 'lic1',
   },
 };
