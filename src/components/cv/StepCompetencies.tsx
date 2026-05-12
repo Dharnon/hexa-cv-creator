@@ -125,10 +125,11 @@ export function StepCompetencies() {
         ))}
       </div>
 
-      {/* Other competencies */}
+      {/* Capacidades y competencias */}
       <div className="space-y-4">
+        <h3 className="text-base font-medium text-foreground">Capacidades y competencias</h3>
         <div className="space-y-2">
-          <Label>Competencias técnicas</Label>
+          <Label>Técnicas</Label>
           <Textarea
             value={comp.technicalSkills}
             onChange={(e) => updateComp('technicalSkills', e.target.value)}
@@ -137,7 +138,7 @@ export function StepCompetencies() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Competencias sociales</Label>
+          <Label>Sociales</Label>
           <Textarea
             value={comp.socialSkills}
             onChange={(e) => updateComp('socialSkills', e.target.value)}
@@ -146,7 +147,7 @@ export function StepCompetencies() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Competencias organizativas</Label>
+          <Label>Organizativas</Label>
           <Textarea
             value={comp.organizationalSkills}
             onChange={(e) => updateComp('organizationalSkills', e.target.value)}
@@ -155,20 +156,12 @@ export function StepCompetencies() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Otros datos (carnet de conducir, etc.)</Label>
+          <Label>Otras (permiso de conducir, disponibilidad para viajar, voluntariado…)</Label>
           <Textarea
             value={comp.otherSkills}
             onChange={(e) => updateComp('otherSkills', e.target.value)}
-            placeholder="Carnet de conducir B, disponibilidad para viajar..."
-            rows={2}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Permiso de conducir</Label>
-          <Input
-            value={comp.drivingLicense}
-            onChange={(e) => updateComp('drivingLicense', e.target.value)}
-            placeholder="B"
+            placeholder="Permiso de conducir B. Disponibilidad para viajar. Voluntariado..."
+            rows={3}
           />
         </div>
       </div>

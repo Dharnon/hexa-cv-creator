@@ -26,6 +26,7 @@ export interface WorkExperience {
   location: string;
   responsibilities: string[];
   technologies: string;
+  methodologies: string;
   sector: string;
   isManager: boolean;
   peopleManaged: number;
@@ -64,12 +65,28 @@ export interface Competencies {
   drivingLicense: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  client: string;
+  sector: string;
+  role: string;
+  startDate: string;
+  endDate: string;
+  technologies: string;
+  description: string;
+}
+
+export type ProjectRole = 'principal' | 'miembro';
+
 export interface CVData {
   personalInfo: PersonalInfo;
   professionalProfile: ProfessionalProfile;
   workExperience: WorkExperience[];
   education: Education[];
   competencies: Competencies;
+  projects: Project[];
+  projectRole: ProjectRole;
 }
 
 export const defaultCVData: CVData = {
@@ -100,6 +117,8 @@ export const defaultCVData: CVData = {
     otherSkills: '',
     drivingLicense: '',
   },
+  projects: [],
+  projectRole: 'miembro',
 };
 
 export const sampleCVData: CVData = {
@@ -134,6 +153,7 @@ export const sampleCVData: CVData = {
         'Elaboración de ofertas técnicas y pliegos de prescripciones para licitaciones públicas',
       ],
       technologies: 'AutoCAD, Revit, MS Project, Primavera P6, SAP',
+      methodologies: 'PMI / PMBOK, AGILE',
       sector: 'Energía e infraestructura',
       isManager: true,
       peopleManaged: 12,
@@ -152,6 +172,7 @@ export const sampleCVData: CVData = {
         'Redacción de informes técnicos y memorias de cálculo estructural',
       ],
       technologies: 'AutoCAD, MATLAB, PVsyst, ETABS',
+      methodologies: 'PMI',
       sector: 'Energías renovables',
       isManager: false,
       peopleManaged: 0,
@@ -170,6 +191,7 @@ export const sampleCVData: CVData = {
         'Elaboración de planos y documentación técnica',
       ],
       technologies: 'AutoCAD, CYPE, Robot Structural Analysis',
+      methodologies: '',
       sector: 'Consultoría de ingeniería',
       isManager: false,
       peopleManaged: 0,
@@ -221,7 +243,21 @@ export const sampleCVData: CVData = {
     technicalSkills: 'AutoCAD, Revit, CYPE, MS Project, Primavera P6, MATLAB, SAP. Certificación PMP. Normativa CTE, Eurocódigos y RITE.',
     socialSkills: 'Liderazgo de equipos multidisciplinares. Comunicación eficaz con clientes y administraciones públicas.',
     organizationalSkills: 'Planificación y control de proyectos con metodología PMI. Gestión simultánea de hasta 4 proyectos.',
-    otherSkills: 'Disponibilidad para viajar. Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
+    otherSkills: 'Permiso de conducir B. Disponibilidad para viajar. Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
     drivingLicense: 'B',
   },
+  projects: [
+    {
+      id: 'proj1',
+      name: 'Planta fotovoltaica 50MW',
+      client: 'CNMT',
+      sector: 'Energías renovables',
+      role: 'Responsable principal',
+      startDate: '2022-01',
+      endDate: '2023-06',
+      technologies: 'PVsyst, AutoCAD, SAP',
+      description: 'Dirección técnica del diseño e implantación de planta fotovoltaica de 50MW conectada a red.',
+    },
+  ],
+  projectRole: 'miembro',
 };

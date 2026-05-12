@@ -28,6 +28,7 @@ export function StepExperience() {
       location: '',
       responsibilities: [''],
       technologies: '',
+      methodologies: '',
       sector: '',
       isManager: false,
       peopleManaged: 0,
@@ -149,9 +150,15 @@ export function StepExperience() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tecnologías / Herramientas</Label>
-              <Input value={exp.technologies} onChange={(e) => updateExp(exp.id, 'technologies', e.target.value)} placeholder="AutoCAD, MS Project, SAP..." />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tecnologías</Label>
+                <Input value={exp.technologies} onChange={(e) => updateExp(exp.id, 'technologies', e.target.value)} placeholder="AutoCAD, MS Project, SAP..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Metodologías</Label>
+                <Input value={exp.methodologies} onChange={(e) => updateExp(exp.id, 'methodologies', e.target.value)} placeholder="AGILE, PMI, Scrum..." />
+              </div>
             </div>
 
             <div className="space-y-2">

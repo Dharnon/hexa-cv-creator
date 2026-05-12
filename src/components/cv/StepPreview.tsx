@@ -6,13 +6,18 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { FileDown, FileText } from 'lucide-react';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
+import { ProjectRole } from '@/types/cv';
+import { cn } from '@/lib/utils';
 
 export function StepPreview() {
   const { data, updateData } = useCV();
+  const role: ProjectRole = data.projectRole ?? 'miembro';
 
   const togglePersonalInfo = (v: boolean) => {
     updateData({ personalInfo: { ...data.personalInfo, showPersonalInfo: v } });
   };
+
+  const setRole = (r: ProjectRole) => updateData({ projectRole: r });
 
   const exportPDF = async () => {
     const el = document.getElementById('cv-preview');
@@ -35,7 +40,14 @@ export function StepPreview() {
       heading: HeadingLevel.HEADING_1,
     }));
     children.push(new Paragraph({
-      children: [new TextRun({ text: data.professionalProfile.jobTitle || '', color: '3B82D6', size: 24 })],
+      children: [new TextRun({ text: data.professionalProfile.jobTitle || '', color: '1F4E8C', size: 24, bold: true })],
+    }));
+    children.push(new Paragraph({
+      children: [new TextRun({
+        text: `Participante en el desarrollo del contrato: ${role === 'principal' ? '☒ Responsable principal   ☐ Miembro del equipo' : '☐ Responsable principal   ☒ Miembro del equipo'}`,
+        size: 20,
+        bold: true,
+      })],
     }));
     children.push(new Paragraph({ text: '' }));
 
@@ -100,9 +112,17 @@ export function StepPreview() {
             ],
           }));
         }
+        if (exp.methodologies) {
+          children.push(new Paragraph({
+            children: [
+              new TextRun({ text: 'Metodologías: ', bold: true, size: 18 }),
+              new TextRun({ text: exp.methodologies, size: 18 }),
+            ],
+          }));
+        }
         if (exp.isManager) {
           children.push(new Paragraph({
-            children: [new TextRun({ text: `Responsable de equipo: ${exp.peopleManaged} personas${exp.teamDescription ? ' — ' + exp.teamDescription : ''}`, italics: true, size: 18 })],
+            children: [new TextRun({ text: `Personas a cargo: ${exp.peopleManaged}${exp.teamDescription ? ' — ' + exp.teamDescription : ''}`, italics: true, size: 18 })],
           }));
         }
         children.push(new Paragraph({ text: '' }));
@@ -141,7 +161,7 @@ export function StepPreview() {
 
     if (compSections.length > 0) {
       children.push(new Paragraph({
-        children: [new TextRun({ text: 'COMPETENCIAS', bold: true, color: '3B82D6', size: 20 })],
+        children: [new TextRun({ text: 'CAPACIDADES Y COMPETENCIAS', bold: true, color: '1F4E8C', size: 22 })],
       }));
       compSections.forEach(([label, value]) => {
         children.push(new Paragraph({
@@ -150,6 +170,29 @@ export function StepPreview() {
             new TextRun({ text: value as string, size: 20 }),
           ],
         }));
+      });
+      children.push(new Paragraph({ text: '' }));
+    }
+
+    // Projects
+    const projects = data.projects ?? [];
+    if (projects.length > 0) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: 'PROYECTOS', bold: true, color: '1F4E8C', size: 22 })],
+      }));
+      projects.forEach((p) => {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: p.name, bold: true, size: 22 })],
+        }));
+        if (p.client || p.sector) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: `${p.client ? 'Cliente: ' + p.client : ''}${p.client && p.sector ? ' · ' : ''}${p.sector ? 'Sector: ' + p.sector : ''}`, size: 18 })],
+          }));
+        }
+        if (p.role) children.push(new Paragraph({ children: [new TextRun({ text: 'Rol: ', bold: true, size: 18 }), new TextRun({ text: p.role, size: 18 })] }));
+        if (p.description) children.push(new Paragraph({ children: [new TextRun({ text: p.description, size: 20 })] }));
+        if (p.technologies) children.push(new Paragraph({ children: [new TextRun({ text: 'Tecnologías: ', bold: true, size: 18 }), new TextRun({ text: p.technologies, size: 18 })] }));
+        children.push(new Paragraph({ text: '' }));
       });
     }
 
@@ -185,9 +228,30 @@ export function StepPreview() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/40">
+        <Label className="text-sm font-semibold">Rol en este proyecto:</Label>
+        {(['principal', 'miembro'] as ProjectRole[]).map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRole(r)}
+            className={cn(
+              'px-3 py-1.5 rounded-md text-xs font-medium border transition-colors',
+              role === r
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background hover:border-primary/40',
+            )}
+          >
+            {r === 'principal' ? 'Responsable principal' : 'Miembro del equipo'}
+          </button>
+        ))}
+        <span className="text-xs text-muted-foreground">Cámbialo antes de exportar para distintas licitaciones.</span>
+      </div>
+
       <CVPreviewFrame>
         <CVPreview data={data} />
       </CVPreviewFrame>
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CVData } from '@/types/cv';
+import { CVData, ProjectRole } from '@/types/cv';
 import { CVPreview } from '@/components/cv/CVPreview';
 import { CVPreviewFrame } from '@/components/cv/CVPreviewFrame';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
@@ -46,9 +46,14 @@ export default function HRDashboard() {
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
   const [pdfRenderData, setPdfRenderData] = useState<CVData | null>(null);
-  const [globalPreviewOptions, setGlobalPreviewOptions] = useState({
+  const [globalPreviewOptions, setGlobalPreviewOptions] = useState<{
+    showName: boolean;
+    showPersonalInfo: boolean;
+    projectRole: ProjectRole | 'auto';
+  }>({
     showName: true,
     showPersonalInfo: true,
+    projectRole: 'auto',
   });
 
   useEffect(() => {
@@ -90,6 +95,10 @@ export default function HRDashboard() {
       showName: globalPreviewOptions.showName,
       showPersonalInfo: globalPreviewOptions.showPersonalInfo,
     },
+    projectRole:
+      globalPreviewOptions.projectRole === 'auto'
+        ? (cvData.projectRole ?? 'miembro')
+        : globalPreviewOptions.projectRole,
   });
 
   const exportPDF = async (cvData: CVData, name: string) => {
@@ -315,6 +324,25 @@ export default function HRDashboard() {
                       }
                     />
                     <Label>Mostrar informacion personal</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Rol:</Label>
+                    {(['auto', 'principal', 'miembro'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() =>
+                          setGlobalPreviewOptions((current) => ({ ...current, projectRole: r }))
+                        }
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                          globalPreviewOptions.projectRole === r
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background hover:border-primary/40'
+                        }`}
+                      >
+                        {r === 'auto' ? 'Por CV' : r === 'principal' ? 'Responsable' : 'Miembro'}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </CardContent>
