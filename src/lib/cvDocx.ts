@@ -1,30 +1,30 @@
 import type { CVData } from '@/types/cv';
 
 /** Builds docx paragraph-compatible structure via dynamic import in callers */
-export async function buildCvDocxParagraphs(data: CVData) {
+export async function buildCvDocxParagraphs(
+  data: CVData,
+  options: { showName?: boolean; tenderLabel?: string } = {},
+) {
+  const { showName = true, tenderLabel } = options;
   const { Paragraph, TextRun, HeadingLevel } = await import('docx');
 
   const sortedExp = [...data.workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const sortedEdu = [...data.education].sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const sortedProj = [...data.projects].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
-  const pp = data.proposalPresentation;
-  const activeEntry = pp.entries.find((e) => e.id === pp.activeEntryId) ?? pp.entries[0];
-  const proposalLine =
-    activeEntry != null
-      ? `${activeEntry.label} — ${activeEntry.role === 'lead' ? 'Responsable principal' : 'Miembro del equipo'}`
-      : '';
+  const isLead = data.role === 'lead';
+  const trimmedTender = tenderLabel?.trim() ?? '';
+  const showProposalHeader = trimmedTender.length > 0 || isLead;
 
   const children: InstanceType<typeof Paragraph>[] = [];
 
   const pushBlank = () => children.push(new Paragraph({ text: '' }));
 
-  if (data.personalInfo.showName) {
+  if (showName) {
     children.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: data.personalInfo.fullName || 'Nombre',
+            text: data.professionalProfile.fullName || 'Nombre',
             bold: true,
             size: 32,
           }),
@@ -44,54 +44,35 @@ export async function buildCvDocxParagraphs(data: CVData) {
       ],
     }),
   );
-  if (proposalLine) {
+  if (showProposalHeader) {
+    const roleText = isLead ? 'Responsable principal' : 'Miembro del equipo';
+    if (trimmedTender) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmedTender,
+              size: 20,
+              color: '64748b',
+            }),
+          ],
+        }),
+      );
+    }
     children.push(
       new Paragraph({
-        children: [new TextRun({ text: proposalLine, bold: true, size: 20 })],
+        children: [
+          new TextRun({
+            text: roleText,
+            bold: true,
+            size: 36,
+            color: isLead ? '0f172a' : '1e40af',
+          }),
+        ],
       }),
     );
   }
   pushBlank();
-
-  if (data.personalInfo.showPersonalInfo) {
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: 'INFORMACIÓN PERSONAL', bold: true, color: '1e3a5f', size: 22 })],
-      }),
-    );
-    const fields = [
-      ['Email', data.personalInfo.email],
-      ['Teléfono', data.personalInfo.phone],
-      ['Dirección', data.personalInfo.address],
-      ['LinkedIn', data.personalInfo.linkedin],
-      ['Nacionalidad', data.personalInfo.nationality],
-    ].filter(([, v]) => v);
-    fields.forEach(([label, value]) => {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: `${label}: `, bold: true, size: 20 }),
-            new TextRun({ text: value as string, size: 20, color: '1f2937' }),
-          ],
-        }),
-      );
-    });
-    pushBlank();
-  }
-
-  if (data.professionalProfile.summary) {
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: 'PERFIL PROFESIONAL', bold: true, color: '1e3a5f', size: 22 })],
-      }),
-    );
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: data.professionalProfile.summary, size: 20, color: '1f2937' })],
-      }),
-    );
-    pushBlank();
-  }
 
   if (sortedExp.length > 0) {
     children.push(
@@ -177,68 +158,6 @@ export async function buildCvDocxParagraphs(data: CVData) {
                 size: 18,
                 color: '4b5563',
               }),
-            ],
-          }),
-        );
-      }
-      pushBlank();
-    });
-  }
-
-  if (sortedProj.length > 0) {
-    children.push(
-      new Paragraph({
-        children: [new TextRun({ text: 'PROYECTOS', bold: true, color: '1e3a5f', size: 22 })],
-      }),
-    );
-    sortedProj.forEach((proj) => {
-      children.push(
-        new Paragraph({
-          children: [new TextRun({ text: proj.title, bold: true, size: 20 })],
-        }),
-      );
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `${proj.startDate} — ${proj.isOngoing ? 'En curso' : proj.endDate}`,
-              italics: true,
-              size: 18,
-              color: '4b5563',
-            }),
-          ],
-        }),
-      );
-      if (proj.client?.trim()) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: `Cliente: ${proj.client}`, size: 18, color: '6b7280' })],
-          }),
-        );
-      }
-      if (proj.description?.trim()) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: proj.description, size: 20, color: '1f2937' })],
-          }),
-        );
-      }
-      if (proj.technologies?.trim()) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Tecnologías: ', bold: true, size: 20 }),
-              new TextRun({ text: proj.technologies, size: 20, color: '1f2937' }),
-            ],
-          }),
-        );
-      }
-      if (proj.methodologies?.trim()) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Metodologías: ', bold: true, size: 20 }),
-              new TextRun({ text: proj.methodologies, size: 20, color: '1f2937' }),
             ],
           }),
         );

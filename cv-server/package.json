@@ -4,10 +4,10 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "npx tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "import:users": "tsx scripts/import-users-from-json.ts"
+    "import:users": "npx tsx scripts/import-users-from-json.ts"
   },
   "engines": {
     "node": ">=22.13.0"

@@ -9,6 +9,7 @@ import { createAuthRoutes } from './routes/authRoutes';
 import { createCvRoutes } from './routes/cvRoutes';
 import { createHrRoutes } from './routes/hrRoutes';
 import { createAdminRoutes } from './routes/adminRoutes';
+import { createTenderRoutes } from './routes/tenderRoutes';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -61,6 +62,8 @@ app.use('/api/auth', createAuthRoutes(db, JWT_SECRET));
 const authed = authMiddleware(db, JWT_SECRET);
 
 app.use('/api/cv', authed, createCvRoutes(db));
+
+app.use('/api/tenders', authed, createTenderRoutes(db));
 
 app.use(
   '/api/hr',

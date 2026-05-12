@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Shield, UserPlus, Trash2 } from 'lucide-react';
@@ -23,6 +25,11 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingRole, setAddingRole] = useState<{ userId: string; role: string } | null>(null);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createFullName, setCreateFullName] = useState('');
+  const [createJobTitle, setCreateJobTitle] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -61,6 +68,37 @@ export default function AdminPanel() {
     }
   };
 
+  const createUser = async (e: FormEvent) => {
+    e.preventDefault();
+    setCreatingUser(true);
+    try {
+      const res = await apiFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: createEmail.trim(),
+          password: createPassword,
+          fullName: createFullName.trim(),
+          jobTitle: createJobTitle.trim(),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error((body as { error?: string }).error ?? 'No se pudo crear el usuario');
+        return;
+      }
+      toast.success('Usuario creado. Puedes asignar roles adicionales en la lista.');
+      setCreateEmail('');
+      setCreatePassword('');
+      setCreateFullName('');
+      setCreateJobTitle('');
+      loadUsers();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const removeRole = async (userId: string, role: string) => {
     const res = await apiFetch(`/api/admin/users/${userId}/roles/${encodeURIComponent(role)}`, {
       method: 'DELETE',
@@ -88,7 +126,7 @@ export default function AdminPanel() {
             <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
             <div>
               <p className="font-semibold text-foreground">Panel de administración</p>
-              <p className="text-xs text-muted-foreground">Roles de usuario</p>
+              <p className="text-xs text-muted-foreground">Usuarios, alta y roles</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -102,7 +140,68 @@ export default function AdminPanel() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" /> Nuevo usuario
+            </CardTitle>
+            <CardDescription>
+              Misma política que el registro: correo corporativo y contraseña mínimo 8 caracteres. Se crea con rol
+              employee; asigna admin o hr abajo si hace falta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={createUser} className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="admin-new-email">Correo</Label>
+                <Input
+                  id="admin-new-email"
+                  type="email"
+                  autoComplete="off"
+                  value={createEmail}
+                  onChange={(ev) => setCreateEmail(ev.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="admin-new-password">Contraseña temporal</Label>
+                <Input
+                  id="admin-new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={createPassword}
+                  onChange={(ev) => setCreatePassword(ev.target.value)}
+                  required
+                  minLength={8}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="admin-new-name">Nombre completo</Label>
+                <Input
+                  id="admin-new-name"
+                  value={createFullName}
+                  onChange={(ev) => setCreateFullName(ev.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="admin-new-job">Puesto (opcional)</Label>
+                <Input
+                  id="admin-new-job"
+                  value={createJobTitle}
+                  onChange={(ev) => setCreateJobTitle(ev.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Button type="submit" disabled={creatingUser}>
+                  {creatingUser ? 'Creando…' : 'Crear usuario'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

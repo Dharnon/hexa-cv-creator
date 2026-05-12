@@ -8,7 +8,7 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep, steps, onStepClick }: StepIndicatorProps) {
   return (
-    <div className="w-full mb-8 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+    <div className="w-full mb-6 overflow-x-auto py-2 [-webkit-overflow-scrolling:touch]">
       <div className="min-w-[min(100%,720px)]">
       <div className="flex items-center justify-between">
         {steps.map((label, i) => (

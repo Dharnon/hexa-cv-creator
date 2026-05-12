@@ -1,17 +1,5 @@
-export interface PersonalInfo {
-  fullName: string;
-  address: string;
-  phone: string;
-  email: string;
-  linkedin: string;
-  nationality: string;
-  dateOfBirth: string;
-  photo: string | null;
-  showPersonalInfo: boolean;
-  showName: boolean;
-}
-
 export interface ProfessionalProfile {
+  fullName: string;
   jobTitle: string;
   summary: string;
 }
@@ -74,44 +62,15 @@ export interface OthersMisc {
 
 export type ProposalRole = 'lead' | 'member';
 
-export interface ProposalEntry {
-  id: string;
-  label: string;
-  role: ProposalRole;
-}
-
-export interface ProposalPresentation {
-  entries: ProposalEntry[];
-  activeEntryId: string | null;
-}
-
-export interface Project {
-  id: string;
-  title: string;
-  client: string;
-  startDate: string;
-  endDate: string;
-  isOngoing: boolean;
-  description: string;
-  technologies: string;
-  methodologies: string;
-}
-
 export interface CVData {
-  personalInfo: PersonalInfo;
   professionalProfile: ProfessionalProfile;
   workExperience: WorkExperience[];
   education: Education[];
-  projects: Project[];
   competencies: Competencies;
   othersMisc: OthersMisc;
-  proposalPresentation: ProposalPresentation;
+  /** Rol del empleado en propuestas/licitaciones, independiente de la licitación concreta. */
+  role: ProposalRole;
 }
-
-export const defaultProposalPresentation: ProposalPresentation = {
-  entries: [{ id: 'default', label: 'General', role: 'member' }],
-  activeEntryId: 'default',
-};
 
 export const defaultOthersMisc: OthersMisc = {
   drivingLicense: '',
@@ -121,25 +80,13 @@ export const defaultOthersMisc: OthersMisc = {
 };
 
 export const defaultCVData: CVData = {
-  personalInfo: {
-    fullName: '',
-    address: '',
-    phone: '',
-    email: '',
-    linkedin: '',
-    nationality: '',
-    dateOfBirth: '',
-    photo: null,
-    showPersonalInfo: true,
-    showName: true,
-  },
   professionalProfile: {
+    fullName: '',
     jobTitle: '',
     summary: '',
   },
   workExperience: [],
   education: [],
-  projects: [],
   competencies: {
     motherTongue: '',
     languages: [],
@@ -149,23 +96,12 @@ export const defaultCVData: CVData = {
     otherSkills: '',
   },
   othersMisc: { ...defaultOthersMisc },
-  proposalPresentation: { ...defaultProposalPresentation },
+  role: 'member',
 };
 
 export const sampleCVData: CVData = {
-  personalInfo: {
-    fullName: 'María García López',
-    address: 'Calle Gran Vía 28, 28013 Madrid',
-    phone: '+34 612 345 678',
-    email: 'maria.garcia@hexaingenieros.com',
-    linkedin: 'linkedin.com/in/mariagarcia',
-    nationality: 'Española',
-    dateOfBirth: '1990-05-15',
-    photo: null,
-    showPersonalInfo: true,
-    showName: true,
-  },
   professionalProfile: {
+    fullName: 'María García López',
     jobTitle: 'Ingeniera de Proyectos Senior',
     summary:
       'Ingeniera industrial con más de 10 años de experiencia en gestión de proyectos de infraestructura y energía. Especializada en dirección de equipos multidisciplinares, optimización de procesos y cumplimiento normativo.',
@@ -250,20 +186,6 @@ export const sampleCVData: CVData = {
       level: 'Grado (MECES 2)',
     },
   ],
-  projects: [
-    {
-      id: 'proj1',
-      title: 'Parque eólico 220 MW — dirección técnica de interconexión',
-      client: 'Operador del sistema (anonimizado)',
-      startDate: '2022-01',
-      endDate: '2024-06',
-      isOngoing: false,
-      description:
-        'Coordinación de ingeniería de detalle, interfaz con subestación y cumplimiento del código de red.',
-      technologies: 'PTC Mathcad, DIgSILENT, AutoCAD Electrical',
-      methodologies: 'PMI, revisión de diseño HAZOP ligera',
-    },
-  ],
   competencies: {
     motherTongue: 'Español',
     languages: [
@@ -299,11 +221,5 @@ export const sampleCVData: CVData = {
     volunteering: 'Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
     extraNotes: '',
   },
-  proposalPresentation: {
-    entries: [
-      { id: 'default', label: 'General', role: 'member' },
-      { id: 'lic1', label: 'Licitación ejemplo — Subestación Norte', role: 'lead' },
-    ],
-    activeEntryId: 'lic1',
-  },
+  role: 'lead',
 };

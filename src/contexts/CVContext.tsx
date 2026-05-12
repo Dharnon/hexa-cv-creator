@@ -18,7 +18,7 @@ const CVContext = createContext<CVContextType | null>(null);
 
 const STEP_KEY_V2 = 'hexa-cv-step-v2';
 const STEP_KEY_LEGACY = 'hexa-cv-step';
-const LAST_STEP_INDEX = 6;
+const LAST_STEP_INDEX = 4;
 
 function readInitialWizardStep(): number {
   try {

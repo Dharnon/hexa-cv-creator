@@ -1,4 +1,4 @@
-import { CVData } from '@/types/cv';
+import { CVData, ProposalRole } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
 
 function formatMonth(dateStr: string): string {
@@ -9,13 +9,8 @@ function formatMonth(dateStr: string): string {
   return `${months[parseInt(month, 10) - 1]} ${year}`;
 }
 
-function activeProposalLabel(data: CVData): string | null {
-  const { entries, activeEntryId } = data.proposalPresentation;
-  const entry = entries.find((e) => e.id === activeEntryId) ?? entries[0];
-  if (!entry) return null;
-  const role =
-    entry.role === 'lead' ? 'Responsable principal en esta propuesta' : 'Miembro del equipo en esta propuesta';
-  return `${entry.label} — ${role}`;
+function roleLabel(role: ProposalRole): string {
+  return role === 'lead' ? 'Responsable principal' : 'Miembro del equipo';
 }
 
 function hasOthersContent(m: CVData['othersMisc']): boolean {
@@ -30,18 +25,22 @@ function hasOthersContent(m: CVData['othersMisc']): boolean {
 export function CVPreview({
   data,
   mode = 'screen',
+  showName = true,
+  tenderLabel,
 }: {
   data: CVData;
   mode?: 'screen' | 'export';
+  showName?: boolean;
+  /** Si se proporciona, muestra en cabecera la licitación activa junto al rol. */
+  tenderLabel?: string;
 }) {
-  const { personalInfo, professionalProfile, workExperience, education, competencies, projects, othersMisc } =
-    data;
+  const { professionalProfile, workExperience, education, competencies, othersMisc, role } = data;
 
   const sortedExp = [...workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const sortedEdu = [...education].sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const sortedProj = [...projects].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
-  const proposalLine = activeProposalLabel(data);
+  const isLead = role === 'lead';
+  const showProposalHeader = Boolean(tenderLabel?.trim()) || isLead;
 
   const sectionTitleClass =
     'text-[11px] font-bold uppercase tracking-wider mb-2 text-[#1e3a5f] border-b border-[#1e3a5f]/25 pb-1';
@@ -55,71 +54,58 @@ export function CVPreview({
       className={[
         'bg-white text-gray-900 flex flex-col',
         mode === 'screen'
-          ? 'w-full max-w-[210mm] mx-auto shadow-lg'
+          ? 'w-[210mm] shrink-0 max-w-none mx-auto shadow-lg'
           : 'w-[210mm] max-w-none mx-0 shadow-none',
       ].join(' ')}
       style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.45' }}
     >
-      <div className="flex items-center justify-between px-8 py-4 border-b-2 border-[#1e40af] bg-white">
-        <div className="flex items-center gap-3">
-          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-8 w-auto" />
-          <p className="text-[10px] font-medium text-gray-700">Europass CV</p>
+      <div
+        className="flex items-center justify-between px-5 py-2 border-b-2 border-[#1e40af] bg-white"
+        data-pdf-atomic
+      >
+        <div className="flex items-center gap-2">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-6 w-auto" />
+          <p className="text-[9px] font-medium text-gray-700">Europass CV</p>
         </div>
 
-        <div className="flex items-center gap-4">
-          {personalInfo.photo && personalInfo.showPersonalInfo && (
-            <img
-              src={personalInfo.photo}
-              alt=""
-              className="w-16 h-16 rounded-full object-cover border-2 border-[#1e40af]"
-            />
-          )}
+        <div className="flex items-center gap-2">
           <div className="text-right">
-            {personalInfo.showName && (
-              <h1 className="text-[22px] font-bold leading-tight text-gray-900">
-                {personalInfo.fullName || 'Nombre Completo'}
+            {showName && (
+              <h1 className="text-[18px] font-bold leading-tight text-gray-900">
+                {professionalProfile.fullName || 'Nombre Completo'}
               </h1>
             )}
-            <p className="text-[13px] font-semibold text-[#1e40af] mt-0.5">
+            <p className="text-[11px] font-semibold text-[#1e40af] mt-0.5 leading-tight">
               {professionalProfile.jobTitle || 'Puesto'}
             </p>
-            {proposalLine && (
-              <p className="text-[10px] font-semibold text-gray-800 mt-1.5 max-w-[280px] ml-auto">{proposalLine}</p>
+            {showProposalHeader && (
+              <div className="mt-1 max-w-[min(100%,360px)] ml-auto text-right space-y-0.5">
+                {tenderLabel?.trim() && (
+                  <p className="text-[9px] font-medium text-gray-600 leading-tight">{tenderLabel}</p>
+                )}
+                <p
+                  className={[
+                    'text-[14px] font-bold leading-tight tracking-tight',
+                    isLead ? 'text-[#0f172a]' : 'text-[#1e40af]',
+                  ].join(' ')}
+                >
+                  {roleLabel(role)}
+                </p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
       <div className="flex flex-1">
-        {personalInfo.showPersonalInfo && (
-          <div className="w-52 shrink-0 p-5 bg-gray-100 border-r border-gray-300 space-y-4">
-            <div>
-              <h3 className={sectionTitleClass}>Información personal</h3>
-              <div className="space-y-2">
-                {personalInfo.email && <InfoLine label="Email" value={personalInfo.email} />}
-                {personalInfo.phone && <InfoLine label="Teléfono" value={personalInfo.phone} />}
-                {personalInfo.address && <InfoLine label="Dirección" value={personalInfo.address} />}
-                {personalInfo.linkedin && <InfoLine label="LinkedIn" value={personalInfo.linkedin} />}
-                {personalInfo.nationality && <InfoLine label="Nacionalidad" value={personalInfo.nationality} />}
-                {personalInfo.dateOfBirth && <InfoLine label="Nacimiento" value={personalInfo.dateOfBirth} />}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 p-6 space-y-5">
-          {professionalProfile.summary && (
-            <section>
-              <h3 className={sectionTitleClass}>Perfil profesional</h3>
-              <p className={`${bodyClass}`}>{professionalProfile.summary}</p>
-            </section>
-          )}
-
+        <div className="flex-1 p-6 pb-8 space-y-5 overflow-visible">
           {sortedExp.length > 0 && (
-            <section>
-              <h3 className={sectionTitleClass}>Experiencia laboral</h3>
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Experiencia laboral</h3>
+              </div>
               {sortedExp.map((exp) => (
-                <div key={exp.id} className="mb-4 pl-3 border-l-[3px] border-[#1e40af]">
+                <div key={exp.id} className="mb-4 pl-3 border-l-[3px] border-[#1e40af]" data-pdf-atomic>
                   <div className="flex justify-between items-start gap-2">
                     <p className="text-[12px] font-bold text-gray-900">{exp.jobTitle}</p>
                     <p className={`${mutedSmall} shrink-0 text-right`}>
@@ -130,13 +116,19 @@ export function CVPreview({
                   {exp.responsibilities.filter(Boolean).length > 0 && (
                     <>
                       <p className={subHeadingClass}>Funciones y responsabilidades</p>
-                      <ul className="list-disc ml-4 space-y-0.5">
+                      <div className="mt-0.5 space-y-1">
                         {exp.responsibilities.filter(Boolean).map((r, i) => (
-                          <li key={i} className={`${bodyClass}`}>
-                            {r}
-                          </li>
+                          <div key={i} className="flex gap-2 items-start">
+                            <span
+                              className="shrink-0 w-3 text-center text-[10px] leading-snug text-gray-800 select-none"
+                              aria-hidden
+                            >
+                              •
+                            </span>
+                            <p className={`${bodyClass} flex-1 min-w-0 leading-snug`}>{r}</p>
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     </>
                   )}
 
@@ -153,7 +145,7 @@ export function CVPreview({
                     </p>
                   )}
 
-                  <div className={`mt-2 space-y-0.5 ${mutedSmall}`}>
+                  <div className="mt-2 space-y-0.5 text-[10px] text-gray-600">
                     {(exp.company || exp.location) && (
                       <p>
                         {[exp.company, exp.location].filter(Boolean).join(' · ')}
@@ -174,41 +166,13 @@ export function CVPreview({
             </section>
           )}
 
-          {sortedProj.length > 0 && (
-            <section>
-              <h3 className={sectionTitleClass}>Proyectos</h3>
-              {sortedProj.map((proj) => (
-                <div key={proj.id} className="mb-4 pl-3 border-l-[3px] border-[#1e40af]">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="text-[11px] font-bold text-gray-900">{proj.title}</p>
-                    <p className={`${mutedSmall} shrink-0 text-right`}>
-                      {formatMonth(proj.startDate)} — {proj.isOngoing ? 'En curso' : formatMonth(proj.endDate)}
-                    </p>
-                  </div>
-                  {proj.client?.trim() && <p className={`${mutedSmall} mt-0.5`}>Cliente: {proj.client}</p>}
-                  {proj.description?.trim() && <p className={`${bodyClass} mt-1`}>{proj.description}</p>}
-                  {proj.technologies?.trim() && (
-                    <p className={`${bodyClass} mt-1`}>
-                      <span className="font-semibold text-gray-900">Tecnologías: </span>
-                      {proj.technologies}
-                    </p>
-                  )}
-                  {proj.methodologies?.trim() && (
-                    <p className={`${bodyClass} mt-0.5`}>
-                      <span className="font-semibold text-gray-900">Metodologías: </span>
-                      {proj.methodologies}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </section>
-          )}
-
           {sortedEdu.length > 0 && (
-            <section>
-              <h3 className={sectionTitleClass}>Educación y formación</h3>
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Educación y formación</h3>
+              </div>
               {sortedEdu.map((ed) => (
-                <div key={ed.id} className="mb-3 pl-3 border-l-[3px] border-[#1e40af]">
+                <div key={ed.id} className="mb-3 pl-3 border-l-[3px] border-[#1e40af]" data-pdf-atomic>
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <p className="text-[11px] font-bold text-gray-900">{ed.qualification}</p>
@@ -226,16 +190,18 @@ export function CVPreview({
           )}
 
           {(competencies.motherTongue || competencies.languages.length > 0) && (
-            <section>
-              <h3 className={sectionTitleClass}>Idiomas</h3>
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Idiomas</h3>
+              </div>
               {competencies.motherTongue && (
-                <p className={`${bodyClass} mb-1`}>
+                <div className={`${bodyClass} mb-1`} data-pdf-atomic>
                   <span className="font-semibold">Lengua materna: </span>
                   {competencies.motherTongue}
-                </p>
+                </div>
               )}
               {competencies.languages.map((lang) => (
-                <div key={lang.id} className="mb-2">
+                <div key={lang.id} className="mb-2" data-pdf-atomic>
                   <p className="font-semibold text-[10px] text-gray-900">{lang.name}</p>
                   <p className={`${mutedSmall}`}>
                     {[lang.listening, lang.reading, lang.spokenInteraction, lang.spokenProduction, lang.writing]
@@ -251,58 +217,62 @@ export function CVPreview({
             competencies.socialSkills ||
             competencies.organizationalSkills ||
             competencies.otherSkills) && (
-            <section>
-              <h3 className={sectionTitleClass}>Capacidades y competencias</h3>
-              {competencies.technicalSkills && (
-                <div className="mb-2">
-                  <p className={subHeadingClass}>Técnicas</p>
-                  <p className={bodyClass}>{competencies.technicalSkills}</p>
-                </div>
-              )}
-              {competencies.socialSkills && (
-                <div className="mb-2">
-                  <p className={subHeadingClass}>Sociales</p>
-                  <p className={bodyClass}>{competencies.socialSkills}</p>
-                </div>
-              )}
-              {competencies.organizationalSkills && (
-                <div className="mb-2">
-                  <p className={subHeadingClass}>Organizativas</p>
-                  <p className={bodyClass}>{competencies.organizationalSkills}</p>
-                </div>
-              )}
-              {competencies.otherSkills && (
-                <div className="mb-2">
-                  <p className={subHeadingClass}>Otras</p>
-                  <p className={bodyClass}>{competencies.otherSkills}</p>
-                </div>
-              )}
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Capacidades y competencias</h3>
+                {competencies.technicalSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Técnicas</p>
+                    <p className={bodyClass}>{competencies.technicalSkills}</p>
+                  </div>
+                )}
+                {competencies.socialSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Sociales</p>
+                    <p className={bodyClass}>{competencies.socialSkills}</p>
+                  </div>
+                )}
+                {competencies.organizationalSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Organizativas</p>
+                    <p className={bodyClass}>{competencies.organizationalSkills}</p>
+                  </div>
+                )}
+                {competencies.otherSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Otras</p>
+                    <p className={bodyClass}>{competencies.otherSkills}</p>
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
           {hasOthersContent(othersMisc) && (
-            <section>
-              <h3 className={sectionTitleClass}>Otros</h3>
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Otros</h3>
+              </div>
               {othersMisc.drivingLicense?.trim() && (
-                <p className={`${bodyClass} mb-1`}>
+                <div className={`${bodyClass} mb-1`} data-pdf-atomic>
                   <span className="font-semibold text-gray-900">Permiso de conducir: </span>
                   {othersMisc.drivingLicense}
-                </p>
+                </div>
               )}
               {othersMisc.travelAvailability?.trim() && (
-                <div className="mb-2">
+                <div className="mb-2" data-pdf-atomic>
                   <p className={subHeadingClass}>Disponibilidad para viajar</p>
                   <p className={bodyClass}>{othersMisc.travelAvailability}</p>
                 </div>
               )}
               {othersMisc.volunteering?.trim() && (
-                <div className="mb-2">
+                <div className="mb-2" data-pdf-atomic>
                   <p className={subHeadingClass}>Voluntariado</p>
                   <p className={bodyClass}>{othersMisc.volunteering}</p>
                 </div>
               )}
               {othersMisc.extraNotes?.trim() && (
-                <div className="mb-2">
+                <div className="mb-2" data-pdf-atomic>
                   <p className={subHeadingClass}>Notas adicionales</p>
                   <p className={bodyClass}>{othersMisc.extraNotes}</p>
                 </div>
@@ -312,14 +282,5 @@ export function CVPreview({
         </div>
       </div>
     </div>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <p className="text-[10px] text-gray-800">
-      <span className="text-[9px] font-medium text-gray-600 uppercase tracking-wide block">{label}</span>
-      {value}
-    </p>
   );
 }

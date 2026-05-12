@@ -1,11 +1,9 @@
 import { CVProvider, useCV } from '@/contexts/CVContext';
 import { useAuth } from '@/hooks/useAuth';
 import { StepIndicator } from '@/components/cv/StepIndicator';
-import { StepPersonalInfo } from '@/components/cv/StepPersonalInfo';
 import { StepProfile } from '@/components/cv/StepProfile';
 import { StepExperience } from '@/components/cv/StepExperience';
 import { StepEducation } from '@/components/cv/StepEducation';
-import { StepProjects } from '@/components/cv/StepProjects';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
@@ -15,11 +13,9 @@ import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 
 const STEPS = [
-  'Información Personal',
   'Perfil',
   'Experiencia',
   'Educación',
-  'Proyectos',
   'Competencias',
   'Vista Previa',
 ];
@@ -30,13 +26,11 @@ function WizardContent() {
   const navigate = useNavigate();
 
   const stepComponents = [
-    <StepPersonalInfo key={0} />,
-    <StepProfile key={1} />,
-    <StepExperience key={2} />,
-    <StepEducation key={3} />,
-    <StepProjects key={4} />,
-    <StepCompetencies key={5} />,
-    <StepPreview key={6} />,
+    <StepProfile key={0} />,
+    <StepExperience key={1} />,
+    <StepEducation key={2} />,
+    <StepCompetencies key={3} />,
+    <StepPreview key={4} />,
   ];
 
   if (!loaded) {
@@ -86,7 +80,7 @@ function WizardContent() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-5xl mx-auto px-6 pt-4 pb-8">
         <StepIndicator currentStep={currentStep} steps={STEPS} onStepClick={setCurrentStep} />
         <div className="min-h-[400px]">{stepComponents[currentStep]}</div>
         <div className="flex items-center justify-between mt-8 pt-6 border-t">

@@ -21,6 +21,7 @@ deploy/*.env
 cv-server/dist
 cv-server/data
 cv-server/.env
+cv-server/.env.production
 
 # Editor directories and files
 .vscode/*

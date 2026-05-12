@@ -45,6 +45,21 @@ export function openDatabase(dbPath: string): DatabaseSync {
       data TEXT NOT NULL DEFAULT '{}',
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS tenders (
+      id TEXT PRIMARY KEY NOT NULL,
+      label TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Repara filas huérfanas (usuario sin perfil): RRHH y admin listan desde `profiles`.
+  db.exec(`
+    INSERT INTO profiles (user_id, full_name, email, job_title, updated_at)
+    SELECT u.id, '', u.email, '', datetime('now')
+    FROM users u
+    WHERE NOT EXISTS (SELECT 1 FROM profiles p WHERE p.user_id = u.id);
   `);
 
   return db;

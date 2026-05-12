@@ -2,18 +2,35 @@ import type {
   CVData,
   Competencies,
   OthersMisc,
-  ProposalPresentation,
-  Project,
+  ProfessionalProfile,
+  ProposalRole,
   WorkExperience,
 } from '@/types/cv';
-import { defaultCVData, defaultOthersMisc, defaultProposalPresentation } from '@/types/cv';
+import { defaultCVData, defaultOthersMisc } from '@/types/cv';
 
-/** Datos guardados antes de othersMisc / sin methodologies */
+interface LegacyPersonalInfo {
+  fullName?: string;
+}
+
+interface LegacyProposalEntry {
+  id?: string;
+  label?: string;
+  role?: ProposalRole;
+}
+
+interface LegacyProposalPresentation {
+  entries?: LegacyProposalEntry[];
+  activeEntryId?: string | null;
+}
+
 interface LegacyCompetencies extends Partial<Competencies> {
   drivingLicense?: string;
 }
 
 interface LegacyCVPartial extends Partial<CVData> {
+  personalInfo?: LegacyPersonalInfo;
+  projects?: unknown;
+  proposalPresentation?: LegacyProposalPresentation;
   competencies?: LegacyCompetencies;
 }
 
@@ -25,14 +42,14 @@ function normalizeWorkExperience(exp: WorkExperience): WorkExperience {
   };
 }
 
-function normalizeProject(p: Project): Project {
+function normalizeProfessionalProfile(
+  raw: Partial<ProfessionalProfile> | undefined,
+  legacy: LegacyPersonalInfo | undefined,
+): ProfessionalProfile {
   return {
-    ...p,
-    client: p.client ?? '',
-    technologies: p.technologies ?? '',
-    methodologies: p.methodologies ?? '',
-    description: p.description ?? '',
-    isOngoing: p.isOngoing ?? false,
+    fullName: raw?.fullName ?? legacy?.fullName ?? '',
+    jobTitle: raw?.jobTitle ?? '',
+    summary: raw?.summary ?? '',
   };
 }
 
@@ -60,20 +77,14 @@ function normalizeOthersMisc(raw: LegacyCVPartial): OthersMisc {
   };
 }
 
-function normalizeProposalPresentation(raw: Partial<ProposalPresentation> | undefined): ProposalPresentation {
-  const entries =
-    raw?.entries && raw.entries.length > 0
-      ? raw.entries.map((e) => ({
-          id: e.id,
-          label: e.label || 'Propuesta',
-          role: e.role === 'lead' ? ('lead' as const) : ('member' as const),
-        }))
-      : [...defaultProposalPresentation.entries];
-  const active =
-    raw?.activeEntryId && entries.some((e) => e.id === raw.activeEntryId)
-      ? raw.activeEntryId
-      : entries[0].id;
-  return { entries, activeEntryId: active };
+function normalizeRole(raw: LegacyCVPartial): ProposalRole {
+  if (raw.role === 'lead' || raw.role === 'member') return raw.role;
+  const pp = raw.proposalPresentation;
+  if (pp?.entries && pp.entries.length > 0) {
+    const active = pp.entries.find((e) => e.id === pp.activeEntryId) ?? pp.entries[0];
+    if (active?.role === 'lead') return 'lead';
+  }
+  return 'member';
 }
 
 export function normalizeCVData(cvData: CVData): CVData {
@@ -81,22 +92,11 @@ export function normalizeCVData(cvData: CVData): CVData {
   const merged = { ...defaultCVData, ...cvData };
 
   return {
-    ...merged,
-    personalInfo: {
-      ...defaultCVData.personalInfo,
-      ...merged.personalInfo,
-      showName: merged.personalInfo.showName ?? true,
-      showPersonalInfo: merged.personalInfo.showPersonalInfo ?? true,
-    },
-    professionalProfile: {
-      ...defaultCVData.professionalProfile,
-      ...merged.professionalProfile,
-    },
+    professionalProfile: normalizeProfessionalProfile(merged.professionalProfile, legacy.personalInfo),
     workExperience: (merged.workExperience ?? []).map(normalizeWorkExperience),
     education: merged.education ?? [],
-    projects: (merged.projects ?? []).map(normalizeProject),
     competencies: normalizeCompetencies(legacy.competencies),
     othersMisc: normalizeOthersMisc(legacy),
-    proposalPresentation: normalizeProposalPresentation(merged.proposalPresentation),
+    role: normalizeRole(legacy),
   };
 }
