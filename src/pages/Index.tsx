@@ -6,6 +6,7 @@ import { StepProfile } from '@/components/cv/StepProfile';
 import { StepExperience } from '@/components/cv/StepExperience';
 import { StepEducation } from '@/components/cv/StepEducation';
 import { StepCompetencies } from '@/components/cv/StepCompetencies';
+import { StepProjects } from '@/components/cv/StepProjects';
 import { StepPreview } from '@/components/cv/StepPreview';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, RotateCcw, Users, Shield, LogOut, Loader2, FlaskConical } from 'lucide-react';
@@ -19,6 +20,7 @@ const STEPS = [
   'Experiencia',
   'Educación',
   'Competencias',
+  'Proyectos',
   'Vista Previa',
 ];
 
@@ -33,7 +35,8 @@ function WizardContent() {
     <StepExperience key={2} />,
     <StepEducation key={3} />,
     <StepCompetencies key={4} />,
-    <StepPreview key={5} />,
+    <StepProjects key={5} />,
+    <StepPreview key={6} />,
   ];
 
   if (!loaded) {
