@@ -325,6 +325,25 @@ export default function HRDashboard() {
                     />
                     <Label>Mostrar informacion personal</Label>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Rol:</Label>
+                    {(['auto', 'principal', 'miembro'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() =>
+                          setGlobalPreviewOptions((current) => ({ ...current, projectRole: r }))
+                        }
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                          globalPreviewOptions.projectRole === r
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background hover:border-primary/40'
+                        }`}
+                      >
+                        {r === 'auto' ? 'Por CV' : r === 'principal' ? 'Responsable' : 'Miembro'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
