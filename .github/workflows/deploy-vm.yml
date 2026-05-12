@@ -11,6 +11,7 @@ jobs:
     runs-on: self-hosted
     env:
       SAP_ENV_SOURCE: /etc/hexa/sap-api.env
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,13 +43,18 @@ jobs:
           CV_CORS_ORIGIN_SECRET: ${{ secrets.CV_CORS_ORIGIN }}
         run: |
           set -euo pipefail
-          if [ -z "${CV_JWT_SECRET:-}" ] || [ "${#CV_JWT_SECRET}" -lt 16 ]; then
-            echo "Configure repository secret CV_JWT_SECRET (min. 16 characters)." >&2
+          if [ -z "${CV_JWT_SECRET:-}" ]; then
+            echo "::error::Secret CV_JWT_SECRET no está definido. Repo → Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          jwt_len=${#CV_JWT_SECRET}
+          if [ "$jwt_len" -lt 16 ]; then
+            echo "::error::CV_JWT_SECRET debe tener al menos 16 caracteres (longitud actual: ${jwt_len})."
             exit 1
           fi
           CORS_EFFECTIVE="${CV_CORS_ORIGIN:-${CV_CORS_ORIGIN_SECRET:-}}"
           if [ -z "$CORS_EFFECTIVE" ]; then
-            echo "Set repository variable CV_CORS_ORIGIN or secret CV_CORS_ORIGIN (comma-separated origins)." >&2
+            echo "::error::Define la variable CV_CORS_ORIGIN o el secreto CV_CORS_ORIGIN (URLs del front, separadas por coma). Settings → Secrets and variables → Actions → Variables / Secrets."
             exit 1
           fi
           umask 077
@@ -58,6 +64,7 @@ jobs:
             printf '%s\n' "PORT=3847"
             printf '%s\n' "CORS_ORIGIN=${CORS_EFFECTIVE}"
           } > cv-server/.env.production
+          echo "cv-server/.env.production escrito (JWT length=${jwt_len}, CORS origins configurados)."
 
       - name: Strip BOM from env/config files
         shell: bash
