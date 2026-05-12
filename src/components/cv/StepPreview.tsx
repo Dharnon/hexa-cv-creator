@@ -6,13 +6,18 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { FileDown, FileText } from 'lucide-react';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
+import { ProjectRole } from '@/types/cv';
+import { cn } from '@/lib/utils';
 
 export function StepPreview() {
   const { data, updateData } = useCV();
+  const role: ProjectRole = data.projectRole ?? 'miembro';
 
   const togglePersonalInfo = (v: boolean) => {
     updateData({ personalInfo: { ...data.personalInfo, showPersonalInfo: v } });
   };
+
+  const setRole = (r: ProjectRole) => updateData({ projectRole: r });
 
   const exportPDF = async () => {
     const el = document.getElementById('cv-preview');
