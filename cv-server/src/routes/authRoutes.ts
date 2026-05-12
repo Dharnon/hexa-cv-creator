@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { signToken, verifyToken } from '../auth';
+import { shouldGrantBootstrapAdminRoles } from '../bootstrapAdmin';
 
 const COMPANY_SUFFIX = '@hexaingenieros.com';
 
@@ -53,8 +54,7 @@ export function createAuthRoutes(db: DatabaseSync, jwtSecret: string): Router {
 
     db.prepare(`INSERT INTO user_roles (user_id, role) VALUES (?, 'employee')`).run(id);
 
-    const bootstrap = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-    if (bootstrap && email === bootstrap) {
+    if (shouldGrantBootstrapAdminRoles(email)) {
       db.prepare(`INSERT OR IGNORE INTO user_roles (user_id, role) VALUES (?, 'admin')`).run(id);
       db.prepare(`INSERT OR IGNORE INTO user_roles (user_id, role) VALUES (?, 'hr')`).run(id);
     }

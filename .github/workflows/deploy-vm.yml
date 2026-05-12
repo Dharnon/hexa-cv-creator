@@ -41,6 +41,8 @@ jobs:
           CV_JWT_SECRET: ${{ secrets.CV_JWT_SECRET }}
           CV_CORS_ORIGIN: ${{ vars.CV_CORS_ORIGIN }}
           CV_CORS_ORIGIN_SECRET: ${{ secrets.CV_CORS_ORIGIN }}
+          CV_BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.CV_BOOTSTRAP_ADMIN_EMAIL }}
+          CV_FIRST_USER_IS_ADMIN: ${{ vars.CV_FIRST_USER_IS_ADMIN }}
         run: |
           set -euo pipefail
           if [ -z "${CV_JWT_SECRET:-}" ]; then
@@ -64,6 +66,14 @@ jobs:
             printf '%s\n' "PORT=3847"
             printf '%s\n' "CORS_ORIGIN=${CORS_EFFECTIVE}"
           } > cv-server/.env.production
+          if [ -n "${CV_BOOTSTRAP_ADMIN_EMAIL:-}" ]; then
+            printf '%s\n' "BOOTSTRAP_ADMIN_EMAIL=${CV_BOOTSTRAP_ADMIN_EMAIL}" >> cv-server/.env.production
+            echo "Añadido BOOTSTRAP_ADMIN_EMAIL (nuevos registros con ese correo reciben admin+hr)."
+          fi
+          if [ "${CV_FIRST_USER_IS_ADMIN:-}" = "true" ]; then
+            printf '%s\n' "FIRST_USER_IS_ADMIN=true" >> cv-server/.env.production
+            echo "Añadido FIRST_USER_IS_ADMIN=true (el primer usuario registrado será admin+hr)."
+          fi
           echo "cv-server/.env.production escrito (JWT length=${jwt_len}, CORS origins configurados)."
 
       - name: Strip BOM from env/config files

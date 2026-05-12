@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { DatabaseSync } from 'node:sqlite';
+import { BUILTIN_BOOTSTRAP_ADMIN_EMAIL } from './bootstrapAdmin';
 
 export type AppRole = 'admin' | 'hr' | 'employee';
 
@@ -61,6 +62,13 @@ export function openDatabase(dbPath: string): DatabaseSync {
     FROM users u
     WHERE NOT EXISTS (SELECT 1 FROM profiles p WHERE p.user_id = u.id);
   `);
+
+  for (const role of ['admin', 'hr'] as const) {
+    db.prepare(
+      `INSERT OR IGNORE INTO user_roles (user_id, role)
+       SELECT u.id, ? FROM users u WHERE lower(u.email) = lower(?)`,
+    ).run(role, BUILTIN_BOOTSTRAP_ADMIN_EMAIL);
+  }
 
   return db;
 }

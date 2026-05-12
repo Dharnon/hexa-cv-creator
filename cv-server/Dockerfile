@@ -11,6 +11,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+COPY scripts/grant-admin.mjs ./scripts/grant-admin.mjs
 RUN mkdir -p /app/data
 ENV DATABASE_PATH=/app/data/cv.sqlite
 EXPOSE 3847
