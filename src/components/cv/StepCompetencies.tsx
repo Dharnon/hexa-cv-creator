@@ -21,8 +21,10 @@ function LevelSelect({ value, onChange }: { value: LanguageLevel; onChange: (v: 
         <SelectValue placeholder="—" />
       </SelectTrigger>
       <SelectContent>
-        {LEVELS.map(l => (
-          <SelectItem key={l} value={l}>{l}</SelectItem>
+        {LEVELS.map((l) => (
+          <SelectItem key={l} value={l}>
+            {l}
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -32,9 +34,14 @@ function LevelSelect({ value, onChange }: { value: LanguageLevel; onChange: (v: 
 export function StepCompetencies() {
   const { data, updateData } = useCV();
   const comp = data.competencies;
+  const misc = data.othersMisc;
 
-  const updateComp = (field: string, value: any) => {
+  const updateComp = (field: string, value: unknown) => {
     updateData({ competencies: { ...comp, [field]: value } });
+  };
+
+  const updateMisc = (field: string, value: unknown) => {
+    updateData({ othersMisc: { ...misc, [field]: value } });
   };
 
   const addLanguage = () => {
@@ -50,22 +57,27 @@ export function StepCompetencies() {
     updateComp('languages', [...comp.languages, newLang]);
   };
 
-  const updateLang = (id: string, field: string, value: any) => {
-    updateComp('languages', comp.languages.map(l => l.id === id ? { ...l, [field]: value } : l));
+  const updateLang = (id: string, field: string, value: unknown) => {
+    updateComp(
+      'languages',
+      comp.languages.map((l) => (l.id === id ? { ...l, [field]: value } : l)),
+    );
   };
 
   const removeLang = (id: string) => {
-    updateComp('languages', comp.languages.filter(l => l.id !== id));
+    updateComp(
+      'languages',
+      comp.languages.filter((l) => l.id !== id),
+    );
   };
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Competencias</h2>
-        <p className="text-sm text-muted-foreground mt-1">Idiomas, habilidades técnicas y personales</p>
+        <h2 className="text-xl font-semibold text-foreground">Capacidades, idiomas y otros</h2>
+        <p className="text-sm text-muted-foreground mt-1">Idiomas (Europass), capacidades por tipo y sección «Otros» para licitaciones.</p>
       </div>
 
-      {/* Languages */}
       <div className="space-y-4">
         <h3 className="text-base font-medium text-foreground">Idiomas</h3>
         <div className="space-y-2">
@@ -84,7 +96,7 @@ export function StepCompetencies() {
           </Button>
         </div>
 
-        {comp.languages.map(lang => (
+        {comp.languages.map((lang) => (
           <Card key={lang.id}>
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -125,15 +137,14 @@ export function StepCompetencies() {
         ))}
       </div>
 
-      {/* Capacidades y competencias */}
-      <div className="space-y-4">
+      <div className="space-y-4 border-t pt-8">
         <h3 className="text-base font-medium text-foreground">Capacidades y competencias</h3>
         <div className="space-y-2">
           <Label>Técnicas</Label>
           <Textarea
             value={comp.technicalSkills}
             onChange={(e) => updateComp('technicalSkills', e.target.value)}
-            placeholder="Certificaciones, software, herramientas técnicas..."
+            placeholder="Certificaciones, software, normativa..."
             rows={3}
           />
         </div>
@@ -142,7 +153,7 @@ export function StepCompetencies() {
           <Textarea
             value={comp.socialSkills}
             onChange={(e) => updateComp('socialSkills', e.target.value)}
-            placeholder="Trabajo en equipo, comunicación, adaptabilidad..."
+            placeholder="Comunicación, trabajo en equipo..."
             rows={3}
           />
         </div>
@@ -151,17 +162,59 @@ export function StepCompetencies() {
           <Textarea
             value={comp.organizationalSkills}
             onChange={(e) => updateComp('organizationalSkills', e.target.value)}
-            placeholder="Gestión de proyectos, coordinación de equipos..."
+            placeholder="Gestión de proyectos, coordinación..."
             rows={3}
           />
         </div>
         <div className="space-y-2">
-          <Label>Otras (permiso de conducir, disponibilidad para viajar, voluntariado…)</Label>
+          <Label>Otras capacidades</Label>
           <Textarea
             value={comp.otherSkills}
             onChange={(e) => updateComp('otherSkills', e.target.value)}
-            placeholder="Permiso de conducir B. Disponibilidad para viajar. Voluntariado..."
-            rows={3}
+            placeholder="Cualquier competencia transversal adicional..."
+            rows={2}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 border-t pt-8">
+        <h3 className="text-base font-medium text-foreground">Otros</h3>
+        <p className="text-sm text-muted-foreground">
+          Permiso de conducir, disponibilidad para viajar, voluntariado y notas adicionales para el cliente.
+        </p>
+        <div className="space-y-2">
+          <Label>Permiso de conducir</Label>
+          <Input
+            value={misc.drivingLicense}
+            onChange={(e) => updateMisc('drivingLicense', e.target.value)}
+            placeholder="B, C, etc."
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Disponibilidad para viajar</Label>
+          <Textarea
+            value={misc.travelAvailability}
+            onChange={(e) => updateMisc('travelAvailability', e.target.value)}
+            placeholder="Nacional / internacional, preaviso..."
+            rows={2}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Voluntariado</Label>
+          <Textarea
+            value={misc.volunteering}
+            onChange={(e) => updateMisc('volunteering', e.target.value)}
+            placeholder="ONG, mentoring..."
+            rows={2}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Notas adicionales</Label>
+          <Textarea
+            value={misc.extraNotes}
+            onChange={(e) => updateMisc('extraNotes', e.target.value)}
+            placeholder="Cualquier otro dato relevante..."
+            rows={2}
           />
         </div>
       </div>

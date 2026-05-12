@@ -1,4 +1,4 @@
-﻿services:
+services:
   sap-api:
     build:
       context: ./server
@@ -7,12 +7,26 @@
       - ./server/.env.production
     restart: unless-stopped
 
+  cv-api:
+    build:
+      context: ./cv-server
+    container_name: hexa-cv-api
+    env_file:
+      - ./cv-server/.env.production
+    volumes:
+      - cv_api_data:/app/data
+    restart: unless-stopped
+
   web:
     build:
       context: .
     container_name: hexa-cv-web
     depends_on:
       - sap-api
+      - cv-api
     ports:
       - "80:80"
     restart: unless-stopped
+
+volumes:
+  cv_api_data:

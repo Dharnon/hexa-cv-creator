@@ -1,0 +1,12 @@
+[
+  {
+    "email": "ji.munoz@hexaingenieros.com",
+    "full_name": "Ji Munoz",
+    "password": "Deathnote15",
+    "roles": [
+      "employee",
+      "hr",
+      "admin"
+    ]
+  }
+]

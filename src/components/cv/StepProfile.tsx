@@ -1,6 +1,7 @@
 import { useCV } from '@/contexts/CVContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ProjectRole } from '@/types/cv';
 import { cn } from '@/lib/utils';
@@ -25,38 +26,13 @@ export function StepProfile() {
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Rol en el proyecto *</Label>
-          <p className="text-xs text-muted-foreground">
-            Indica si esta persona aparece como responsable principal o como miembro del equipo. Se puede cambiar antes de exportar.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {([
-              { value: 'principal', label: 'Responsable principal' },
-              { value: 'miembro', label: 'Miembro del equipo' },
-            ] as { value: ProjectRole; label: string }[]).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setRole(opt.value)}
-                className={cn(
-                  'rounded-lg border-2 px-4 py-3 text-sm font-medium text-left transition-colors',
-                  role === opt.value
-                    ? 'border-primary bg-primary/5 text-foreground'
-                    : 'border-border bg-background text-muted-foreground hover:border-primary/40',
-                )}
-              >
-                <span className={cn(
-                  'inline-flex items-center justify-center w-4 h-4 rounded-sm border mr-2 text-[10px]',
-                  role === opt.value ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground',
-                )}>
-                  {role === opt.value ? '✓' : ''}
-                </span>
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <Label>Nombre completo *</Label>
+          <Input
+            value={profile.fullName}
+            onChange={(e) => update('fullName', e.target.value)}
+            placeholder="Juan Pérez García"
+          />
         </div>
-
         <div className="space-y-2">
           <Label>Puesto actual *</Label>
           <Input
@@ -72,6 +48,18 @@ export function StepProfile() {
             onChange={(e) => update('summary', e.target.value)}
             placeholder="Breve descripción de su perfil profesional, experiencia y objetivos..."
             rows={5}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+          <div>
+            <Label className="text-sm">Rol en propuestas</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Activado: Responsable principal · Desactivado: Miembro del equipo
+            </p>
+          </div>
+          <Switch
+            checked={data.role === 'lead'}
+            onCheckedChange={(v) => updateData({ role: v ? 'lead' : 'member' })}
           />
         </div>
       </div>

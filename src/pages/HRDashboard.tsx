@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import { CVData, ProjectRole } from '@/types/cv';
+import { CVData, ProposalRole } from '@/types/cv';
+import { normalizeCVData } from '@/lib/normalizeCVData';
 import { CVPreview } from '@/components/cv/CVPreview';
 import { CVPreviewFrame } from '@/components/cv/CVPreviewFrame';
 import { SapUserReportSection } from '@/components/hr/SapUserReportSection';
@@ -12,11 +13,22 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileDown, FileText, Eye, Search, ArrowLeft } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { FileDown, FileText, Eye, Search, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import hexaLogo from '@/assets/hexa-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { exportCvElementToPdf } from '@/lib/cvPdfExport';
+import { buildCvDocxParagraphs } from '@/lib/cvDocx';
+
+const ACTIVE_TENDER_KEY = 'hexa-hr-active-tender-id';
+const NONE_TENDER_VALUE = '__none__';
 
 interface EmployeeCV {
   user_id: string;
@@ -26,15 +38,9 @@ interface EmployeeCV {
   updated_at: string;
 }
 
-function normalizeCVData(cvData: CVData): CVData {
-  return {
-    ...cvData,
-    personalInfo: {
-      ...cvData.personalInfo,
-      showName: cvData.personalInfo.showName ?? true,
-      showPersonalInfo: cvData.personalInfo.showPersonalInfo ?? true,
-    },
-  };
+interface Tender {
+  id: string;
+  label: string;
 }
 
 export default function HRDashboard() {
@@ -46,40 +52,139 @@ export default function HRDashboard() {
   const [previewData, setPreviewData] = useState<CVData | null>(null);
   const [previewName, setPreviewName] = useState('');
   const [pdfRenderData, setPdfRenderData] = useState<CVData | null>(null);
-  const [globalPreviewOptions, setGlobalPreviewOptions] = useState<{
-    showName: boolean;
-    showPersonalInfo: boolean;
-    projectRole: ProjectRole | 'auto';
-  }>({
-    showName: true,
-    showPersonalInfo: true,
-    projectRole: 'auto',
+  const [showName, setShowName] = useState(false);
+  const [tenders, setTenders] = useState<Tender[]>([]);
+  const [activeTenderId, setActiveTenderId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(ACTIVE_TENDER_KEY);
+    } catch {
+      return null;
+    }
   });
+  const [newTenderLabel, setNewTenderLabel] = useState('');
 
   useEffect(() => {
     loadEmployees();
+    loadTenders();
   }, []);
+
+  useEffect(() => {
+    try {
+      if (activeTenderId) {
+        localStorage.setItem(ACTIVE_TENDER_KEY, activeTenderId);
+      } else {
+        localStorage.removeItem(ACTIVE_TENDER_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [activeTenderId]);
 
   const loadEmployees = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: cvs } = await supabase.from('cv_data').select('*');
+    try {
+      const res = await apiFetch('/api/hr/employees');
+      if (!res.ok) {
+        toast.error('No se pudieron cargar los empleados');
+        setEmployees([]);
+        return;
+      }
+      const rows = (await res.json()) as Array<{
+        user_id: string;
+        full_name: string;
+        email: string;
+        data: CVData | null;
+        updated_at: string;
+      }>;
 
-    const cvMap = new Map(cvs?.map((cv) => [cv.user_id, cv]) ?? []);
+      const merged: EmployeeCV[] = rows.map((row) => ({
+        user_id: row.user_id,
+        full_name: row.full_name,
+        email: row.email,
+        data: row.data ? normalizeCVData(row.data as CVData) : null,
+        updated_at: row.updated_at,
+      }));
 
-    const merged: EmployeeCV[] = (profiles ?? []).map((profile) => {
-      const cv = cvMap.get(profile.user_id);
-      return {
-        user_id: profile.user_id,
-        full_name: profile.full_name || profile.email,
-        email: profile.email,
-        data: cv ? normalizeCVData(cv.data as unknown as CVData) : null,
-        updated_at: cv?.updated_at ?? profile.created_at,
-      };
-    });
+      setEmployees(merged);
+    } catch {
+      toast.error('Error de conexión con el servidor');
+      setEmployees([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setEmployees(merged);
-    setLoading(false);
+  const loadTenders = async () => {
+    try {
+      const res = await apiFetch('/api/tenders');
+      if (!res.ok) {
+        setTenders([]);
+        return;
+      }
+      const rows = (await res.json()) as Tender[];
+      setTenders(rows);
+      if (activeTenderId && !rows.some((t) => t.id === activeTenderId)) {
+        setActiveTenderId(null);
+      }
+    } catch {
+      setTenders([]);
+    }
+  };
+
+  const addTender = async () => {
+    const label = newTenderLabel.trim();
+    if (!label) return;
+    try {
+      const res = await apiFetch('/api/tenders', {
+        method: 'POST',
+        body: JSON.stringify({ label }),
+      });
+      if (!res.ok) {
+        toast.error('No se pudo crear la licitación');
+        return;
+      }
+      const created = (await res.json()) as Tender;
+      setTenders((prev) => [...prev, created].sort((a, b) => a.label.localeCompare(b.label)));
+      setActiveTenderId(created.id);
+      setNewTenderLabel('');
+    } catch {
+      toast.error('Error de conexión con el servidor');
+    }
+  };
+
+  const deleteTender = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/tenders/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('No se pudo eliminar la licitación');
+        return;
+      }
+      setTenders((prev) => prev.filter((t) => t.id !== id));
+      if (activeTenderId === id) setActiveTenderId(null);
+    } catch {
+      toast.error('Error de conexión con el servidor');
+    }
+  };
+
+  const updateEmployeeRole = async (userId: string, role: ProposalRole) => {
+    setEmployees((prev) =>
+      prev.map((e) =>
+        e.user_id === userId && e.data ? { ...e, data: { ...e.data, role } } : e,
+      ),
+    );
+    try {
+      const res = await apiFetch(`/api/hr/employees/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) {
+        toast.error('No se pudo actualizar el rol');
+        await loadEmployees();
+      }
+    } catch {
+      toast.error('Error de conexión con el servidor');
+      await loadEmployees();
+    }
   };
 
   const filtered = employees.filter(
@@ -88,23 +193,14 @@ export default function HRDashboard() {
       employee.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const applyGlobalPreviewOptions = (cvData: CVData): CVData => ({
-    ...cvData,
-    personalInfo: {
-      ...cvData.personalInfo,
-      showName: globalPreviewOptions.showName,
-      showPersonalInfo: globalPreviewOptions.showPersonalInfo,
-    },
-    projectRole:
-      globalPreviewOptions.projectRole === 'auto'
-        ? (cvData.projectRole ?? 'miembro')
-        : globalPreviewOptions.projectRole,
-  });
+  const activeTenderLabel = useMemo(
+    () => tenders.find((t) => t.id === activeTenderId)?.label,
+    [tenders, activeTenderId],
+  );
 
   const exportPDF = async (cvData: CVData, name: string) => {
     const normalized = normalizeCVData(cvData);
-    const preparedData = applyGlobalPreviewOptions(normalized);
-    setPdfRenderData(preparedData);
+    setPdfRenderData(normalized);
 
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -122,126 +218,13 @@ export default function HRDashboard() {
   };
 
   const exportWord = async (cvData: CVData, name: string) => {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+    const { Document, Packer } = await import('docx');
     const { saveAs } = await import('file-saver');
     const normalized = normalizeCVData(cvData);
-    const preparedData = applyGlobalPreviewOptions(normalized);
-
-    const sortedExperience = [...preparedData.workExperience].sort((a, b) =>
-      b.startDate.localeCompare(a.startDate),
-    );
-    const sortedEducation = [...preparedData.education].sort((a, b) =>
-      b.startDate.localeCompare(a.startDate),
-    );
-    const children: InstanceType<typeof Paragraph>[] = [];
-
-    if (preparedData.personalInfo.showName) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: preparedData.personalInfo.fullName || name, bold: true, size: 32 }),
-          ],
-          heading: HeadingLevel.HEADING_1,
-        }),
-      );
-    }
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: preparedData.professionalProfile.jobTitle || '',
-            color: '3B82D6',
-            size: 24,
-          }),
-        ],
-      }),
-    );
-    children.push(new Paragraph({ text: '' }));
-
-    if (preparedData.personalInfo.showPersonalInfo) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'INFORMACION PERSONAL', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      [['Email', preparedData.personalInfo.email], ['Telefono', preparedData.personalInfo.phone], ['Direccion', preparedData.personalInfo.address]]
-        .filter(([, value]) => value)
-        .forEach(([label, value]) => {
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({ text: `${label}: `, bold: true, size: 20 }),
-                new TextRun({ text: value as string, size: 20 }),
-              ],
-            }),
-          );
-        });
-      children.push(new Paragraph({ text: '' }));
-    }
-
-    if (sortedExperience.length > 0) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'EXPERIENCIA LABORAL', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      sortedExperience.forEach((experience) => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: experience.jobTitle, bold: true, size: 20 }),
-              new TextRun({ text: ` - ${experience.company}`, size: 20 }),
-            ],
-          }),
-        );
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `${experience.startDate} - ${experience.isCurrentJob ? 'Actualidad' : experience.endDate}`,
-                italics: true,
-                size: 18,
-              }),
-            ],
-          }),
-        );
-        experience.responsibilities.filter(Boolean).forEach((responsibility) => {
-          children.push(
-            new Paragraph({
-              children: [new TextRun({ text: `- ${responsibility}`, size: 20 })],
-              indent: { left: 360 },
-            }),
-          );
-        });
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
-    if (sortedEducation.length > 0) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'EDUCACION Y FORMACION', bold: true, color: '3B82D6', size: 20 }),
-          ],
-        }),
-      );
-      sortedEducation.forEach((education) => {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: education.qualification, bold: true, size: 20 }),
-              new TextRun({ text: ` - ${education.institution}`, size: 20 }),
-            ],
-          }),
-        );
-        children.push(new Paragraph({ text: '' }));
-      });
-    }
-
+    const children = await buildCvDocxParagraphs(normalized, {
+      showName,
+      tenderLabel: activeTenderLabel,
+    });
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `CV_${name.replace(/\s+/g, '_')}.docx`);
@@ -295,35 +278,66 @@ export default function HRDashboard() {
               </div>
               <p className="text-sm text-muted-foreground">{filtered.length} empleados</p>
             </div>
+
             <Card>
-              <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <CardContent className="space-y-4 py-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Opciones globales de visualizacion</p>
+                  <p className="text-sm font-medium">Opciones globales de visualización</p>
                   <p className="text-xs text-muted-foreground">
-                    Se aplican para todos al abrir vista previa y descargar PDF/Word.
+                    Se aplican a la vista previa y a las descargas PDF/Word. El rol se gestiona por empleado abajo.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={globalPreviewOptions.showName}
-                      onCheckedChange={(value) =>
-                        setGlobalPreviewOptions((current) => ({ ...current, showName: value }))
-                      }
-                    />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Licitación activa</Label>
+                    <Select
+                      value={activeTenderId ?? NONE_TENDER_VALUE}
+                      onValueChange={(v) => setActiveTenderId(v === NONE_TENDER_VALUE ? null : v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin licitación" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE_TENDER_VALUE}>Sin licitación</SelectItem>
+                        {tenders.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <Switch checked={showName} onCheckedChange={setShowName} />
                     <Label>Mostrar nombre en cabecera</Label>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={globalPreviewOptions.showPersonalInfo}
-                      onCheckedChange={(value) =>
-                        setGlobalPreviewOptions((current) => ({
-                          ...current,
-                          showPersonalInfo: value,
-                        }))
-                      }
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Nueva licitación</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      value={newTenderLabel}
+                      onChange={(e) => setNewTenderLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void addTender();
+                        }
+                      }}
+                      placeholder="Ej. Licitación CNMT 2026"
+                      className="max-w-md flex-1"
                     />
-                    <Label>Mostrar informacion personal</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void addTender()}
+                      disabled={!newTenderLabel.trim()}
+                    >
+                      <Plus className="mr-1 h-4 w-4" /> Añadir
+                    </Button>
                   </div>
                   <div className="flex items-center gap-2">
                     <Label className="text-sm">Rol:</Label>
@@ -345,6 +359,29 @@ export default function HRDashboard() {
                     ))}
                   </div>
                 </div>
+
+                {tenders.length > 0 && (
+                  <ul className="space-y-1 rounded-md border bg-muted/30 p-3 text-sm">
+                    {tenders.map((t) => (
+                      <li key={t.id} className="flex items-center justify-between gap-2">
+                        <span>
+                          <span className="font-medium">{t.label}</span>
+                          {t.id === activeTenderId && (
+                            <span className="ml-2 text-xs text-primary">(activa)</span>
+                          )}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => void deleteTender(t.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
 
@@ -354,7 +391,7 @@ export default function HRDashboard() {
               <div className="grid gap-4">
                 {filtered.map((employee) => (
                   <Card key={employee.user_id} className="transition-shadow hover:shadow-md">
-                    <CardContent className="flex items-center justify-between py-4">
+                    <CardContent className="flex items-center justify-between gap-4 py-4">
                       <div className="flex-1">
                         <p className="font-medium text-foreground">{employee.full_name}</p>
                         <p className="text-sm text-muted-foreground">{employee.email}</p>
@@ -364,35 +401,31 @@ export default function HRDashboard() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        {employee.data && (
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={employee.data.role === 'lead'}
+                              onCheckedChange={(v) =>
+                                void updateEmployeeRole(employee.user_id, v ? 'lead' : 'member')
+                              }
+                            />
+                            <Label className="text-xs whitespace-nowrap">
+                              {employee.data.role === 'lead' ? 'Responsable' : 'Miembro'}
+                            </Label>
+                          </div>
+                        )}
                         {employee.data ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const normalized = normalizeCVData(employee.data);
-                                setPreviewData(applyGlobalPreviewOptions(normalized));
-                                setPreviewName(employee.full_name);
-                              }}
-                            >
-                              <Eye className="mr-1 h-4 w-4" /> Ver
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => exportPDF(employee.data!, employee.full_name)}
-                            >
-                              <FileDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => exportWord(employee.data!, employee.full_name)}
-                            >
-                              <FileText className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setPreviewData(normalizeCVData(employee.data!));
+                              setPreviewName(employee.full_name);
+                            }}
+                          >
+                            <Eye className="mr-1 h-4 w-4" /> Ver / exportar
+                          </Button>
                         ) : (
                           <span className="text-xs text-muted-foreground">Sin CV</span>
                         )}
@@ -417,19 +450,53 @@ export default function HRDashboard() {
           setPreviewName('');
         }}
       >
-        <DialogContent className="grid h-[95vh] w-[min(96vw,1200px)] max-w-[1200px] grid-rows-[auto,minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:p-6">
+        <DialogContent className="grid h-[95vh] w-[min(96vw,1200px)] max-w-[1200px] grid-rows-[auto,auto,minmax(0,1fr)] gap-3 overflow-hidden p-4 sm:p-6">
           <DialogTitle className="pr-8 text-lg">CV de {previewName}</DialogTitle>
           {previewData && (
-            <CVPreviewFrame key={previewName} className="min-h-0 h-full max-h-full">
-              <CVPreview data={previewData} mode="screen" />
-            </CVPreviewFrame>
+            <>
+              <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+                <span className="text-xs text-muted-foreground mr-2">
+                  Descarga con la licitación activa{activeTenderLabel ? ` "${activeTenderLabel}"` : ''}:
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    void exportPDF(previewData, previewName);
+                  }}
+                >
+                  <FileDown className="mr-1 h-4 w-4" /> PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void exportWord(previewData, previewName);
+                  }}
+                >
+                  <FileText className="mr-1 h-4 w-4" /> Word
+                </Button>
+              </div>
+              <CVPreviewFrame key={previewName} className="min-h-0 h-full max-h-full overflow-auto">
+                <CVPreview
+                  data={previewData}
+                  mode="screen"
+                  showName={showName}
+                  tenderLabel={activeTenderLabel}
+                />
+              </CVPreviewFrame>
+            </>
           )}
         </DialogContent>
       </Dialog>
       {pdfRenderData && (
         <div style={{ position: 'fixed', left: '-10000px', top: 0, width: '210mm', background: '#fff' }}>
           <div id="pdf-export-preview">
-            <CVPreview data={pdfRenderData} mode="export" />
+            <CVPreview
+              data={pdfRenderData}
+              mode="export"
+              showName={showName}
+              tenderLabel={activeTenderLabel}
+            />
           </div>
         </div>
       )}

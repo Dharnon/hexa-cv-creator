@@ -1,10 +1,13 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { apiFetch, getStoredToken, setStoredToken } from '@/lib/api';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
   roles: string[];
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -17,101 +20,133 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 const COMPANY_DOMAIN = '@hexaingenieros.com';
 
-const isCompanyEmail = (email: string): boolean =>
-  email.trim().toLowerCase().endsWith(COMPANY_DOMAIN);
-
-const getAuthRedirectUrl = (): string => {
-  const configured = import.meta.env.VITE_AUTH_REDIRECT_URL;
-  if (configured) {
-    try {
-      const parsed = new URL(configured);
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-        return parsed.toString();
-      }
-    } catch {
-      // Fallback to current origin when env is malformed.
-    }
-  }
-
-  return window.location.origin;
-};
+const isCompanyEmail = (email: string): boolean => email.trim().toLowerCase().endsWith(COMPANY_DOMAIN);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
 
-  const fetchRoles = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-    setRoles(data?.map(r => r.role) ?? []);
+  const hydrate = useCallback(async () => {
+    const token = getStoredToken();
+    if (!token) {
+      setUser(null);
+      setRoles([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await apiFetch('/api/auth/me');
+      if (!res.ok) {
+        setStoredToken(null);
+        setUser(null);
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
+      const body = (await res.json()) as {
+        user: { id: string; email: string };
+        roles: string[];
+      };
+      setUser(body.user);
+      setRoles(body.roles ?? []);
+    } catch {
+      setStoredToken(null);
+      setUser(null);
+      setRoles([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(() => fetchRoles(session.user.id), 0);
-        } else {
-          setRoles([]);
-        }
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchRoles]);
+    hydrate();
+  }, [hydrate]);
 
   const signIn = async (email: string, password: string) => {
     if (!isCompanyEmail(email)) {
       return { error: `Solo se permiten correos ${COMPANY_DOMAIN}` };
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { error: (body as { error?: string }).error ?? 'Error al iniciar sesión' };
+      }
+      const token = (body as { token?: string }).token;
+      if (!token) {
+        return { error: 'Respuesta inválida del servidor' };
+      }
+      setStoredToken(token);
+      await hydrate();
+      return { error: null };
+    } catch (e) {
+      if (e instanceof TypeError && String(e.message).toLowerCase().includes('fetch')) {
+        return {
+          error:
+            'No se pudo conectar con el servidor. Arranca el API en otra terminal: npm run dev:cv (puerto 3847) o usa npm run dev:all para web + API a la vez.',
+        };
+      }
+      const msg = e instanceof Error ? e.message : 'Error de red';
+      return { error: msg };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, jobTitle: string) => {
     if (!isCompanyEmail(email)) {
       return { error: `Solo se permiten correos ${COMPANY_DOMAIN}` };
     }
-    const { error, data: signUpData } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, job_title: jobTitle },
-        emailRedirectTo: getAuthRedirectUrl(),
-      },
-    });
-    if (!error && signUpData.user) {
-      await supabase.from('profiles').update({ job_title: jobTitle }).eq('user_id', signUpData.user.id);
+    try {
+      const res = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, fullName, jobTitle }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { error: (body as { error?: string }).error ?? 'Error al registrarse' };
+      }
+      const token = (body as { token?: string }).token;
+      if (!token) {
+        return { error: 'Respuesta inválida del servidor' };
+      }
+      setStoredToken(token);
+      await hydrate();
+      return { error: null };
+    } catch (e) {
+      if (e instanceof TypeError && String(e.message).toLowerCase().includes('fetch')) {
+        return {
+          error:
+            'No se pudo conectar con el servidor. Arranca el API: npm run dev:cv o npm run dev:all.',
+        };
+      }
+      const msg = e instanceof Error ? e.message : 'Error de red';
+      return { error: msg };
     }
-    return { error: error?.message ?? null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    setStoredToken(null);
+    setUser(null);
+    setRoles([]);
   };
 
   return (
-    <AuthContext.Provider value={{
-      user, session, loading, roles, signIn, signUp, signOut,
-      isHR: roles.includes('hr') || roles.includes('admin'),
-      isAdmin: roles.includes('admin'),
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        roles,
+        signIn,
+        signUp,
+        signOut,
+        isHR: roles.includes('hr') || roles.includes('admin'),
+        isAdmin: roles.includes('admin'),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

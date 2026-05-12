@@ -1,4 +1,4 @@
-﻿name: Deploy VM
+name: Deploy VM
 
 on:
   push:
@@ -34,11 +34,37 @@ jobs:
         run: |
           cp "$SAP_ENV_SOURCE" server/.env.production
 
+      - name: Write cv-server .env.production from GitHub
+        shell: bash
+        env:
+          CV_JWT_SECRET: ${{ secrets.CV_JWT_SECRET }}
+          CV_CORS_ORIGIN: ${{ vars.CV_CORS_ORIGIN }}
+          CV_CORS_ORIGIN_SECRET: ${{ secrets.CV_CORS_ORIGIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CV_JWT_SECRET:-}" ] || [ "${#CV_JWT_SECRET}" -lt 16 ]; then
+            echo "Configure repository secret CV_JWT_SECRET (min. 16 characters)." >&2
+            exit 1
+          fi
+          CORS_EFFECTIVE="${CV_CORS_ORIGIN:-${CV_CORS_ORIGIN_SECRET:-}}"
+          if [ -z "$CORS_EFFECTIVE" ]; then
+            echo "Set repository variable CV_CORS_ORIGIN or secret CV_CORS_ORIGIN (comma-separated origins)." >&2
+            exit 1
+          fi
+          umask 077
+          {
+            printf '%s\n' "JWT_SECRET=${CV_JWT_SECRET}"
+            printf '%s\n' "DATABASE_PATH=/app/data/cv.sqlite"
+            printf '%s\n' "PORT=3847"
+            printf '%s\n' "CORS_ORIGIN=${CORS_EFFECTIVE}"
+          } > cv-server/.env.production
+
       - name: Strip BOM from env/config files
         shell: bash
         run: |
           [ -f .env ] && sed -i 's/\xEF\xBB\xBF//g' .env || true
           [ -f server/.env.production ] && sed -i 's/\xEF\xBB\xBF//g' server/.env.production || true
+          [ -f cv-server/.env.production ] && sed -i 's/\xEF\xBB\xBF//g' cv-server/.env.production || true
           [ -f deploy/nginx.conf ] && sed -i 's/\xEF\xBB\xBF//g' deploy/nginx.conf || true
 
       - name: Build and deploy
@@ -49,6 +75,7 @@ jobs:
         run: |
           sleep 10
           curl --fail http://127.0.0.1/sap-api/health
+          curl --fail http://127.0.0.1/cv-api-health
 
       - name: Cleanup dangling images
         run: docker image prune -f

@@ -1,17 +1,5 @@
-export interface PersonalInfo {
-  fullName: string;
-  address: string;
-  phone: string;
-  email: string;
-  linkedin: string;
-  nationality: string;
-  dateOfBirth: string;
-  photo: string | null;
-  showPersonalInfo: boolean;
-  showName: boolean;
-}
-
 export interface ProfessionalProfile {
+  fullName: string;
   jobTitle: string;
   summary: string;
 }
@@ -62,47 +50,38 @@ export interface Competencies {
   socialSkills: string;
   organizationalSkills: string;
   otherSkills: string;
+}
+
+/** Permiso de conducir, viajes, voluntariado y notas (sección OTROS del CV) */
+export interface OthersMisc {
   drivingLicense: string;
+  travelAvailability: string;
+  volunteering: string;
+  extraNotes: string;
 }
 
-export interface Project {
-  id: string;
-  name: string;
-  client: string;
-  sector: string;
-  role: string;
-  startDate: string;
-  endDate: string;
-  technologies: string;
-  description: string;
-}
-
-export type ProjectRole = 'principal' | 'miembro';
+export type ProposalRole = 'lead' | 'member';
 
 export interface CVData {
-  personalInfo: PersonalInfo;
   professionalProfile: ProfessionalProfile;
   workExperience: WorkExperience[];
   education: Education[];
   competencies: Competencies;
-  projects: Project[];
-  projectRole: ProjectRole;
+  othersMisc: OthersMisc;
+  /** Rol del empleado en propuestas/licitaciones, independiente de la licitación concreta. */
+  role: ProposalRole;
 }
 
+export const defaultOthersMisc: OthersMisc = {
+  drivingLicense: '',
+  travelAvailability: '',
+  volunteering: '',
+  extraNotes: '',
+};
+
 export const defaultCVData: CVData = {
-  personalInfo: {
-    fullName: '',
-    address: '',
-    phone: '',
-    email: '',
-    linkedin: '',
-    nationality: '',
-    dateOfBirth: '',
-    photo: null,
-    showPersonalInfo: true,
-    showName: true,
-  },
   professionalProfile: {
+    fullName: '',
     jobTitle: '',
     summary: '',
   },
@@ -115,28 +94,17 @@ export const defaultCVData: CVData = {
     socialSkills: '',
     organizationalSkills: '',
     otherSkills: '',
-    drivingLicense: '',
   },
-  projects: [],
-  projectRole: 'miembro',
+  othersMisc: { ...defaultOthersMisc },
+  role: 'member',
 };
 
 export const sampleCVData: CVData = {
-  personalInfo: {
-    fullName: 'María García López',
-    address: 'Calle Gran Vía 28, 28013 Madrid',
-    phone: '+34 612 345 678',
-    email: 'maria.garcia@hexaingenieros.com',
-    linkedin: 'linkedin.com/in/mariagarcia',
-    nationality: 'Española',
-    dateOfBirth: '1990-05-15',
-    photo: null,
-    showPersonalInfo: true,
-    showName: true,
-  },
   professionalProfile: {
+    fullName: 'María García López',
     jobTitle: 'Ingeniera de Proyectos Senior',
-    summary: 'Ingeniera industrial con más de 10 años de experiencia en gestión de proyectos de infraestructura y energía. Especializada en dirección de equipos multidisciplinares, optimización de procesos y cumplimiento normativo.',
+    summary:
+      'Ingeniera industrial con más de 10 años de experiencia en gestión de proyectos de infraestructura y energía. Especializada en dirección de equipos multidisciplinares, optimización de procesos y cumplimiento normativo.',
   },
   workExperience: [
     {
@@ -153,7 +121,7 @@ export const sampleCVData: CVData = {
         'Elaboración de ofertas técnicas y pliegos de prescripciones para licitaciones públicas',
       ],
       technologies: 'AutoCAD, Revit, MS Project, Primavera P6, SAP',
-      methodologies: 'PMI / PMBOK, AGILE',
+      methodologies: 'PMI, gestión de riesgos según ISO 31000, BIM coordination',
       sector: 'Energía e infraestructura',
       isManager: true,
       peopleManaged: 12,
@@ -172,7 +140,7 @@ export const sampleCVData: CVData = {
         'Redacción de informes técnicos y memorias de cálculo estructural',
       ],
       technologies: 'AutoCAD, MATLAB, PVsyst, ETABS',
-      methodologies: 'PMI',
+      methodologies: 'Scrum adaptado a obra, revisiones de diseño por comité técnico',
       sector: 'Energías renovables',
       isManager: false,
       peopleManaged: 0,
@@ -191,7 +159,7 @@ export const sampleCVData: CVData = {
         'Elaboración de planos y documentación técnica',
       ],
       technologies: 'AutoCAD, CYPE, Robot Structural Analysis',
-      methodologies: '',
+      methodologies: 'Metodología BIM nivel 1, control de cambios documental',
       sector: 'Consultoría de ingeniería',
       isManager: false,
       peopleManaged: 0,
@@ -240,24 +208,18 @@ export const sampleCVData: CVData = {
         writing: 'B1',
       },
     ],
-    technicalSkills: 'AutoCAD, Revit, CYPE, MS Project, Primavera P6, MATLAB, SAP. Certificación PMP. Normativa CTE, Eurocódigos y RITE.',
+    technicalSkills:
+      'AutoCAD, Revit, CYPE, MS Project, Primavera P6, MATLAB, SAP. Certificación PMP. Normativa CTE, Eurocódigos y RITE.',
     socialSkills: 'Liderazgo de equipos multidisciplinares. Comunicación eficaz con clientes y administraciones públicas.',
-    organizationalSkills: 'Planificación y control de proyectos con metodología PMI. Gestión simultánea de hasta 4 proyectos.',
-    otherSkills: 'Permiso de conducir B. Disponibilidad para viajar. Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
-    drivingLicense: 'B',
+    organizationalSkills:
+      'Planificación y control de proyectos con metodología PMI. Gestión simultánea de hasta 4 proyectos.',
+    otherSkills: 'Formación interna en seguridad en obra y coordinación de actividades empresariales (CAE).',
   },
-  projects: [
-    {
-      id: 'proj1',
-      name: 'Planta fotovoltaica 50MW',
-      client: 'CNMT',
-      sector: 'Energías renovables',
-      role: 'Responsable principal',
-      startDate: '2022-01',
-      endDate: '2023-06',
-      technologies: 'PVsyst, AutoCAD, SAP',
-      description: 'Dirección técnica del diseño e implantación de planta fotovoltaica de 50MW conectada a red.',
-    },
-  ],
-  projectRole: 'miembro',
+  othersMisc: {
+    drivingLicense: 'B',
+    travelAvailability: 'Disponibilidad nacional e internacional con preaviso.',
+    volunteering: 'Voluntariado en Ingeniería Sin Fronteras (2016-2018).',
+    extraNotes: '',
+  },
+  role: 'lead',
 };

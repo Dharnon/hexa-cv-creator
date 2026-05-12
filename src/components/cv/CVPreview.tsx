@@ -1,31 +1,52 @@
-import { CVData } from '@/types/cv';
+import { CVData, ProposalRole } from '@/types/cv';
 import hexaLogo from '@/assets/hexa-logo.png';
 
 function formatMonth(dateStr: string): string {
   if (!dateStr) return '';
-  const [year, month] = dateStr.split('-');
+  const [, month] = dateStr.split('-');
+  const year = dateStr.split('-')[0];
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   return `${months[parseInt(month, 10) - 1]} ${year}`;
 }
 
-const COLOR_PRIMARY = '#1F4E8C';   // Hexa azul oscuro para títulos
-const COLOR_ACCENT = '#3B82D6';    // Azul Hexa para acentos
-const COLOR_TEXT = '#1A1A1A';      // Cuerpo
-const COLOR_MUTED = '#444';        // Secundario
+function roleLabel(role: ProposalRole): string {
+  return role === 'lead' ? 'Responsable principal' : 'Miembro del equipo';
+}
+
+function hasOthersContent(m: CVData['othersMisc']): boolean {
+  return Boolean(
+    m.drivingLicense?.trim() ||
+      m.travelAvailability?.trim() ||
+      m.volunteering?.trim() ||
+      m.extraNotes?.trim(),
+  );
+}
 
 export function CVPreview({
   data,
   mode = 'screen',
+  showName = true,
+  tenderLabel,
 }: {
   data: CVData;
   mode?: 'screen' | 'export';
+  showName?: boolean;
+  /** Si se proporciona, muestra en cabecera la licitación activa junto al rol. */
+  tenderLabel?: string;
 }) {
-  const { personalInfo, professionalProfile, workExperience, education, competencies } = data;
-  const projects = data.projects ?? [];
-  const role = data.projectRole ?? 'miembro';
+  const { professionalProfile, workExperience, education, competencies, othersMisc, role } = data;
 
   const sortedExp = [...workExperience].sort((a, b) => b.startDate.localeCompare(a.startDate));
   const sortedEdu = [...education].sort((a, b) => b.startDate.localeCompare(a.startDate));
+
+  const isLead = role === 'lead';
+  const showProposalHeader = Boolean(tenderLabel?.trim()) || isLead;
+
+  const sectionTitleClass =
+    'text-[11px] font-bold uppercase tracking-wider mb-2 text-[#1e3a5f] border-b border-[#1e3a5f]/25 pb-1';
+  const subHeadingClass = 'text-[10px] font-semibold text-gray-800 mt-2 mb-0.5';
+  const bodyClass = 'text-[10px] leading-relaxed text-gray-800';
+  const mutedSmall = 'text-[9px] text-gray-600';
 
   return (
     <div
@@ -33,19 +54,45 @@ export function CVPreview({
       className={[
         'bg-white flex flex-col',
         mode === 'screen'
-          ? 'w-full max-w-[210mm] mx-auto shadow-lg'
+          ? 'w-[210mm] shrink-0 max-w-none mx-auto shadow-lg'
           : 'w-[210mm] max-w-none mx-0 shadow-none',
       ].join(' ')}
-      style={{ color: COLOR_TEXT, fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.5', minHeight: '297mm' }}
+      style={{ fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.45' }}
     >
-      {/* Header */}
-      <div className="px-8 pt-6 pb-3 border-b-4" style={{ borderColor: COLOR_PRIMARY }}>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src={hexaLogo} alt="Hexa Ingenieros" className="h-9 w-auto" />
-            <p className="text-[10px] font-medium uppercase tracking-widest" style={{ color: COLOR_MUTED }}>
-              Anejo · CV Formato Europass
+      <div
+        className="flex items-center justify-between px-5 py-2 border-b-2 border-[#1e40af] bg-white"
+        data-pdf-atomic
+      >
+        <div className="flex items-center gap-2">
+          <img src={hexaLogo} alt="Hexa Ingenieros" className="h-6 w-auto" />
+          <p className="text-[9px] font-medium text-gray-700">Europass CV</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            {showName && (
+              <h1 className="text-[18px] font-bold leading-tight text-gray-900">
+                {professionalProfile.fullName || 'Nombre Completo'}
+              </h1>
+            )}
+            <p className="text-[11px] font-semibold text-[#1e40af] mt-0.5 leading-tight">
+              {professionalProfile.jobTitle || 'Puesto'}
             </p>
+            {showProposalHeader && (
+              <div className="mt-1 max-w-[min(100%,360px)] ml-auto text-right space-y-0.5">
+                {tenderLabel?.trim() && (
+                  <p className="text-[9px] font-medium text-gray-600 leading-tight">{tenderLabel}</p>
+                )}
+                <p
+                  className={[
+                    'text-[14px] font-bold leading-tight tracking-tight',
+                    isLead ? 'text-[#0f172a]' : 'text-[#1e40af]',
+                  ].join(' ')}
+                >
+                  {roleLabel(role)}
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
             {personalInfo.photo && personalInfo.showPersonalInfo && (
@@ -80,68 +127,67 @@ export function CVPreview({
       </div>
 
       <div className="flex flex-1">
-        {personalInfo.showPersonalInfo && (
-          <aside className="w-56 shrink-0 p-5 bg-gray-50 border-r border-gray-200 space-y-4">
-            <Section title="Información personal">
-              {personalInfo.email && <InfoLine label="Email" value={personalInfo.email} />}
-              {personalInfo.phone && <InfoLine label="Teléfono" value={personalInfo.phone} />}
-              {personalInfo.address && <InfoLine label="Dirección" value={personalInfo.address} />}
-              {personalInfo.linkedin && <InfoLine label="LinkedIn" value={personalInfo.linkedin} />}
-              {personalInfo.nationality && <InfoLine label="Nacionalidad" value={personalInfo.nationality} />}
-              {personalInfo.dateOfBirth && <InfoLine label="Nacimiento" value={personalInfo.dateOfBirth} />}
-            </Section>
-          </aside>
-        )}
-
-        <main className="flex-1 p-6 space-y-5">
-          {professionalProfile.summary && (
-            <Section title="Perfil profesional">
-              <p style={{ color: COLOR_TEXT }}>{professionalProfile.summary}</p>
-            </Section>
-          )}
-
+        <div className="flex-1 p-6 pb-8 space-y-5 overflow-visible">
           {sortedExp.length > 0 && (
-            <Section title="Experiencia laboral">
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Experiencia laboral</h3>
+              </div>
               {sortedExp.map((exp) => (
-                <article key={exp.id} className="mb-4 pl-3 border-l-[3px]" style={{ borderColor: COLOR_ACCENT }}>
-                  <header className="flex justify-between items-start">
-                    <p className="font-bold text-[13px]" style={{ color: COLOR_PRIMARY }}>
-                      {exp.jobTitle || 'Profesión / cargo desempeñado'}
+                <div key={exp.id} className="mb-4 pl-3 border-l-[3px] border-[#1e40af]" data-pdf-atomic>
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="text-[12px] font-bold text-gray-900">{exp.jobTitle}</p>
+                    <p className={`${mutedSmall} shrink-0 text-right`}>
+                      {formatMonth(exp.startDate)} — {exp.isCurrentJob ? 'Actualidad' : formatMonth(exp.endDate)}
                     </p>
-                    <p className="text-[10px] font-medium shrink-0 ml-2" style={{ color: COLOR_MUTED }}>
-                      {formatMonth(exp.startDate)} – {exp.isCurrentJob ? 'Actualidad' : formatMonth(exp.endDate)}
-                    </p>
-                  </header>
+                  </div>
 
                   {exp.responsibilities.filter(Boolean).length > 0 && (
-                    <SubBlock label="Funciones y responsabilidades:">
-                      <ul className="list-disc ml-4 mt-0.5 space-y-0.5">
+                    <>
+                      <p className={subHeadingClass}>Funciones y responsabilidades</p>
+                      <div className="mt-0.5 space-y-1">
                         {exp.responsibilities.filter(Boolean).map((r, i) => (
-                          <li key={i}>{r}</li>
+                          <div key={i} className="flex gap-2 items-start">
+                            <span
+                              className="shrink-0 w-3 text-center text-[10px] leading-snug text-gray-800 select-none"
+                              aria-hidden
+                            >
+                              •
+                            </span>
+                            <p className={`${bodyClass} flex-1 min-w-0 leading-snug`}>{r}</p>
+                          </div>
                         ))}
-                      </ul>
-                    </SubBlock>
+                      </div>
+                    </>
                   )}
 
-                  {exp.technologies && (
-                    <SubBlock label="Tecnologías:" inline>{exp.technologies}</SubBlock>
+                  {exp.technologies?.trim() && (
+                    <p className={`${bodyClass} mt-2`}>
+                      <span className="font-semibold text-gray-900">Tecnologías: </span>
+                      {exp.technologies}
+                    </p>
+                  )}
+                  {exp.methodologies?.trim() && (
+                    <p className={`${bodyClass} mt-1`}>
+                      <span className="font-semibold text-gray-900">Metodologías: </span>
+                      {exp.methodologies}
+                    </p>
                   )}
 
-                  {exp.methodologies && (
-                    <SubBlock label="Metodologías:" inline>{exp.methodologies}</SubBlock>
-                  )}
+                  <div className="mt-2 space-y-0.5 text-[10px] text-gray-600">
+                    {(exp.company || exp.location) && (
+                      <p>
+                        {[exp.company, exp.location].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    {exp.sector && <p>Sector: {exp.sector}</p>}
+                  </div>
 
                   {exp.isManager && (
-                    <SubBlock label="Personas a cargo:" inline>
-                      {exp.peopleManaged}
+                    <p className={`${mutedSmall} mt-1`}>
+                      <span className="font-semibold text-gray-700">Responsable de equipo: </span>
+                      {exp.peopleManaged} personas
                       {exp.teamDescription ? ` — ${exp.teamDescription}` : ''}
-                    </SubBlock>
-                  )}
-
-                  {(exp.company || exp.location) && (
-                    <p className="text-[10.5px] mt-1" style={{ color: COLOR_MUTED }}>
-                      <span className="font-semibold">Empresa:</span> {exp.company}
-                      {exp.location ? `, ${exp.location}` : ''}
                     </p>
                   )}
                   {exp.sector && (
@@ -151,27 +197,30 @@ export function CVPreview({
                   )}
                 </article>
               ))}
-            </Section>
+            </section>
           )}
 
           {sortedEdu.length > 0 && (
-            <Section title="Educación y formación">
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Educación y formación</h3>
+              </div>
               {sortedEdu.map((ed) => (
-                <article key={ed.id} className="mb-3 pl-3 border-l-[3px]" style={{ borderColor: COLOR_ACCENT }}>
-                  <div className="flex justify-between items-start">
+                <div key={ed.id} className="mb-3 pl-3 border-l-[3px] border-[#1e40af]" data-pdf-atomic>
+                  <div className="flex justify-between items-start gap-2">
                     <div>
-                      <p className="font-bold text-[12.5px]" style={{ color: COLOR_PRIMARY }}>{ed.qualification}</p>
-                      <p className="text-[11px] font-medium" style={{ color: COLOR_ACCENT }}>{ed.institution}</p>
+                      <p className="text-[11px] font-bold text-gray-900">{ed.qualification}</p>
+                      <p className="text-[10px] font-medium text-[#1e40af]">{ed.institution}</p>
                     </div>
-                    <p className="text-[10px] shrink-0 ml-2" style={{ color: COLOR_MUTED }}>
-                      {formatMonth(ed.startDate)} – {formatMonth(ed.endDate)}
+                    <p className={`${mutedSmall} shrink-0`}>
+                      {formatMonth(ed.startDate)} — {formatMonth(ed.endDate)}
                     </p>
                   </div>
-                  {ed.subjects && <p className="text-[10.5px] mt-0.5">{ed.subjects}</p>}
-                  {ed.level && <p className="text-[10px]" style={{ color: COLOR_MUTED }}>Nivel: {ed.level}</p>}
-                </article>
+                  {ed.subjects && <p className={`${mutedSmall} mt-0.5`}>{ed.subjects}</p>}
+                  {ed.level && <p className={`${mutedSmall}`}>Nivel: {ed.level}</p>}
+                </div>
               ))}
-            </Section>
+            </section>
           )}
 
           {(competencies.technicalSkills || competencies.socialSkills || competencies.organizationalSkills || competencies.otherSkills) && (
@@ -184,120 +233,97 @@ export function CVPreview({
           )}
 
           {(competencies.motherTongue || competencies.languages.length > 0) && (
-            <Section title="Idiomas">
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Idiomas</h3>
+              </div>
               {competencies.motherTongue && (
-                <p className="text-[11px] mb-1">
-                  <span className="font-semibold">Lengua materna:</span> {competencies.motherTongue}
-                </p>
+                <div className={`${bodyClass} mb-1`} data-pdf-atomic>
+                  <span className="font-semibold">Lengua materna: </span>
+                  {competencies.motherTongue}
+                </div>
               )}
               {competencies.languages.map((lang) => (
-                <div key={lang.id} className="mb-1.5">
-                  <p className="font-bold text-[11px]" style={{ color: COLOR_PRIMARY }}>{lang.name}</p>
-                  <p className="text-[10px]" style={{ color: COLOR_MUTED }}>
+                <div key={lang.id} className="mb-2" data-pdf-atomic>
+                  <p className="font-semibold text-[10px] text-gray-900">{lang.name}</p>
+                  <p className={`${mutedSmall}`}>
                     {[lang.listening, lang.reading, lang.spokenInteraction, lang.spokenProduction, lang.writing]
                       .filter(Boolean)
                       .join(' / ')}
                   </p>
                 </div>
               ))}
-            </Section>
+            </section>
           )}
 
-          {projects.length > 0 && (
-            <Section title="Proyectos">
-              {projects.map((p) => (
-                <article key={p.id} className="mb-3 pl-3 border-l-[3px]" style={{ borderColor: COLOR_ACCENT }}>
-                  <div className="flex justify-between items-start">
-                    <p className="font-bold text-[12.5px]" style={{ color: COLOR_PRIMARY }}>{p.name}</p>
-                    {(p.startDate || p.endDate) && (
-                      <p className="text-[10px] shrink-0 ml-2" style={{ color: COLOR_MUTED }}>
-                        {formatMonth(p.startDate)} – {formatMonth(p.endDate)}
-                      </p>
-                    )}
+          {(competencies.technicalSkills ||
+            competencies.socialSkills ||
+            competencies.organizationalSkills ||
+            competencies.otherSkills) && (
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Capacidades y competencias</h3>
+                {competencies.technicalSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Técnicas</p>
+                    <p className={bodyClass}>{competencies.technicalSkills}</p>
                   </div>
-                  {(p.client || p.sector) && (
-                    <p className="text-[10.5px]" style={{ color: COLOR_MUTED }}>
-                      {p.client && <><span className="font-semibold">Cliente:</span> {p.client}</>}
-                      {p.client && p.sector ? ' · ' : ''}
-                      {p.sector && <><span className="font-semibold">Sector:</span> {p.sector}</>}
-                    </p>
-                  )}
-                  {p.role && <SubBlock label="Rol:" inline>{p.role}</SubBlock>}
-                  {p.description && <SubBlock label="Descripción:" inline>{p.description}</SubBlock>}
-                  {p.technologies && <SubBlock label="Tecnologías:" inline>{p.technologies}</SubBlock>}
-                </article>
-              ))}
-            </Section>
+                )}
+                {competencies.socialSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Sociales</p>
+                    <p className={bodyClass}>{competencies.socialSkills}</p>
+                  </div>
+                )}
+                {competencies.organizationalSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Organizativas</p>
+                    <p className={bodyClass}>{competencies.organizationalSkills}</p>
+                  </div>
+                )}
+                {competencies.otherSkills && (
+                  <div className="mb-2">
+                    <p className={subHeadingClass}>Otras</p>
+                    <p className={bodyClass}>{competencies.otherSkills}</p>
+                  </div>
+                )}
+              </div>
+            </section>
           )}
-        </main>
+
+          {hasOthersContent(othersMisc) && (
+            <section className="break-inside-avoid">
+              <div data-pdf-atomic>
+                <h3 className={sectionTitleClass}>Otros</h3>
+              </div>
+              {othersMisc.drivingLicense?.trim() && (
+                <div className={`${bodyClass} mb-1`} data-pdf-atomic>
+                  <span className="font-semibold text-gray-900">Permiso de conducir: </span>
+                  {othersMisc.drivingLicense}
+                </div>
+              )}
+              {othersMisc.travelAvailability?.trim() && (
+                <div className="mb-2" data-pdf-atomic>
+                  <p className={subHeadingClass}>Disponibilidad para viajar</p>
+                  <p className={bodyClass}>{othersMisc.travelAvailability}</p>
+                </div>
+              )}
+              {othersMisc.volunteering?.trim() && (
+                <div className="mb-2" data-pdf-atomic>
+                  <p className={subHeadingClass}>Voluntariado</p>
+                  <p className={bodyClass}>{othersMisc.volunteering}</p>
+                </div>
+              )}
+              {othersMisc.extraNotes?.trim() && (
+                <div className="mb-2" data-pdf-atomic>
+                  <p className={subHeadingClass}>Notas adicionales</p>
+                  <p className={bodyClass}>{othersMisc.extraNotes}</p>
+                </div>
+              )}
+            </section>
+          )}
+        </div>
       </div>
     </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h3
-        className="text-[12px] font-extrabold uppercase tracking-wider mb-2 pb-0.5 border-b"
-        style={{ color: COLOR_PRIMARY, borderColor: COLOR_PRIMARY }}
-      >
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
-}
-
-function SubBlock({ label, children, inline }: { label: string; children: React.ReactNode; inline?: boolean }) {
-  if (inline) {
-    return (
-      <p className="text-[11px] mt-1">
-        <span className="font-bold" style={{ color: COLOR_PRIMARY }}>{label} </span>
-        <span style={{ color: COLOR_TEXT }}>{children}</span>
-      </p>
-    );
-  }
-  return (
-    <div className="mt-1">
-      <p className="text-[11px] font-bold" style={{ color: COLOR_PRIMARY }}>{label}</p>
-      <div className="text-[11px]" style={{ color: COLOR_TEXT }}>{children}</div>
-    </div>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <p className="text-[10.5px]">
-      <span className="block text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: COLOR_MUTED }}>{label}</span>
-      <span style={{ color: COLOR_TEXT }}>{value}</span>
-    </p>
-  );
-}
-
-function CompBlock({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="mb-2">
-      <p className="font-bold text-[11.5px]" style={{ color: COLOR_PRIMARY }}>{label}</p>
-      <p className="text-[11px]" style={{ color: COLOR_TEXT }}>{text}</p>
-    </div>
-  );
-}
-
-function RoleCheck({ label, checked }: { label: string; checked: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: COLOR_TEXT }}>
-      <span
-        className="inline-flex items-center justify-center w-3.5 h-3.5 border-2 text-[9px] font-bold"
-        style={{
-          borderColor: COLOR_PRIMARY,
-          background: checked ? COLOR_PRIMARY : '#fff',
-          color: '#fff',
-        }}
-      >
-        {checked ? '✓' : ''}
-      </span>
-      {label}
-    </span>
   );
 }

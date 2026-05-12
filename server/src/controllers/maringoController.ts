@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { db } from '../db/hanaClient';
 
 interface EmployeeRow {
@@ -19,6 +19,40 @@ interface UserProjectRow {
   client: string | null;
   totalHours: number | string | null;
 }
+
+interface MaestroServicioRow {
+  serviceCode: string | null;
+  matchCode: string | null;
+}
+
+/** SAP/HANA identifier: letters, digits, underscore; must match your DDIC names. */
+const isSafeHanaIdent = (s: string) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(s) && s.length <= 128;
+
+const getMaestroServiciosQuery = (): string | null => {
+  const full = process.env.HANA_MAESTRO_SERVICIOS_SQL?.trim();
+  if (full) {
+    return full;
+  }
+
+  // Verificado en HANA (PRODU_HEXA): maestro de tipos de servicio / Leistung.
+  const schema = (process.env.HANA_MAESTRO_SERVICIOS_SCHEMA ?? 'PRODU_HEXA').trim();
+  const table = (process.env.HANA_MAESTRO_SERVICIOS_TABLE ?? 'MPLEISTUNG').trim();
+  const codeCol = (process.env.HANA_MAESTRO_SERVICIOS_CODE_COLUMN ?? 'LEISTUNGSNUMMER').trim();
+  const matchCol = (process.env.HANA_MAESTRO_SERVICIOS_MATCH_COLUMN ?? 'MATCHCODE').trim();
+
+  if (![schema, table, codeCol, matchCol].every(isSafeHanaIdent)) {
+    return null;
+  }
+
+  return `
+    SELECT
+      ${codeCol} AS "serviceCode",
+      ${matchCol} AS "matchCode"
+    FROM "${schema}"."${table}"
+    ORDER BY ${codeCol}
+    LIMIT 5000
+  `;
+};
 
 const buildClientExpression = () => `
   CASE
@@ -143,6 +177,42 @@ export const getUserProjectReport = async (req: Request, res: Response) => {
     db.markUnavailable(error);
     res.status(500).json({
       error: 'Failed to fetch user project report',
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : String(error) }),
+    });
+  }
+};
+
+/**
+ * Códigos de servicio de proyecto y match code (tabla maestro en HANA).
+ * Configura HANA_MAESTRO_SERVICIOS_* en .env o HANA_MAESTRO_SERVICIOS_SQL con el SELECT completo.
+ */
+export const getMaestroServicios = async (_req: Request, res: Response) => {
+  const query = getMaestroServiciosQuery();
+  if (!query) {
+    res.status(500).json({
+      error: 'Invalid maestro servicios configuration',
+      ...(isProduction
+        ? {}
+        : {
+            details:
+              'Set HANA_MAESTRO_SERVICIOS_SQL or valid HANA_MAESTRO_SERVICIOS_SCHEMA/TABLE/CODE_COLUMN/MATCH_COLUMN (alphanumeric identifiers only).',
+          }),
+    });
+    return;
+  }
+
+  if (!ensureSapAvailable(res)) {
+    return;
+  }
+
+  try {
+    const results = await db.execute<MaestroServicioRow>(query);
+    res.json(results);
+  } catch (error) {
+    console.error('[server] Error fetching maestro servicios:', error);
+    db.markUnavailable(error);
+    res.status(500).json({
+      error: 'Failed to fetch maestro servicios',
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : String(error) }),
     });
   }

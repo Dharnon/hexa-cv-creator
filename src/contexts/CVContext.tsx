@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { CVData, defaultCVData } from '@/types/cv';
-import { supabase } from '@/integrations/supabase/client';
+import { normalizeCVData } from '@/lib/normalizeCVData';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 
 interface CVContextType {
@@ -15,7 +16,37 @@ interface CVContextType {
 
 const CVContext = createContext<CVContextType | null>(null);
 
-const STEP_KEY = 'hexa-cv-step';
+const STEP_KEY_V2 = 'hexa-cv-step-v2';
+const STEP_KEY_LEGACY = 'hexa-cv-step';
+const LAST_STEP_INDEX = 4;
+
+function readInitialWizardStep(): number {
+  try {
+    const v2 = localStorage.getItem(STEP_KEY_V2);
+    if (v2 !== null) {
+      const n = Number(v2);
+      if (!Number.isNaN(n)) {
+        return Math.min(Math.max(0, n), LAST_STEP_INDEX);
+      }
+    }
+    const legacy = localStorage.getItem(STEP_KEY_LEGACY);
+    if (legacy !== null) {
+      const n = Number(legacy);
+      let mapped = 0;
+      if (!Number.isNaN(n)) {
+        if (n <= 3) mapped = n;
+        else if (n === 4) mapped = 5;
+        else if (n === 5) mapped = 6;
+      }
+      localStorage.setItem(STEP_KEY_V2, String(mapped));
+      localStorage.removeItem(STEP_KEY_LEGACY);
+      return mapped;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 0;
+}
 
 export function CVProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -24,88 +55,85 @@ export function CVProvider({ children }: { children: React.ReactNode }) {
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const [currentStep, setCurrentStep] = useState(() => {
-    try { return Number(localStorage.getItem(STEP_KEY)) || 0; } catch { return 0; }
-  });
+  const [currentStep, setCurrentStep] = useState(readInitialWizardStep);
 
-  // Load from DB
   useEffect(() => {
-    if (!user) { setData(defaultCVData); setLoaded(false); return; }
+    if (!user) {
+      setData(defaultCVData);
+      setLoaded(false);
+      return;
+    }
+
     (async () => {
-      // Load CV data
-      const { data: row } = await supabase
-        .from('cv_data')
-        .select('data')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      // Load profile for auto-fill
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('email, full_name, job_title')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (row?.data) {
-        setData({ ...defaultCVData, ...(row.data as unknown as CVData) });
-      } else if (profile) {
-        // Auto-fill new CV with profile data
-        setData({
-          ...defaultCVData,
-          personalInfo: {
-            ...defaultCVData.personalInfo,
-            fullName: profile.full_name || '',
-            email: profile.email || '',
-          },
-          professionalProfile: {
-            ...defaultCVData.professionalProfile,
-            jobTitle: (profile as any).job_title || '',
-          },
-        });
+      try {
+        const res = await apiFetch('/api/cv');
+        if (!res.ok) {
+          setLoaded(true);
+          return;
+        }
+        const body = (await res.json()) as { data?: unknown };
+        const raw = body.data as Partial<CVData> | undefined;
+        if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+          setData(normalizeCVData({ ...defaultCVData, ...raw }));
+        } else {
+          setData(normalizeCVData({ ...defaultCVData }));
+        }
+      } catch {
+        setData(normalizeCVData({ ...defaultCVData }));
       }
       setLoaded(true);
     })();
   }, [user]);
 
-  // Save to DB with debounce
   const saveToDB = useCallback(async (cvData: CVData) => {
     if (!user) return;
     setSaving(true);
-    const { data: existing } = await supabase
-      .from('cv_data')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (existing) {
-      await supabase.from('cv_data').update({ data: cvData as any }).eq('user_id', user.id);
-    } else {
-      await supabase.from('cv_data').insert({ user_id: user.id, data: cvData as any });
+    try {
+      await apiFetch('/api/cv', {
+        method: 'PUT',
+        body: JSON.stringify({ data: cvData }),
+      });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem(STEP_KEY, String(currentStep));
+    try {
+      localStorage.setItem(STEP_KEY_V2, String(currentStep));
+    } catch {
+      /* ignore */
+    }
   }, [currentStep]);
 
-  const updateData = useCallback((updates: Partial<CVData>) => {
-    setData(prev => {
-      const next = { ...prev, ...updates };
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => saveToDB(next), 1000);
-      return next;
-    });
-  }, [saveToDB]);
+  const updateData = useCallback(
+    (updates: Partial<CVData>) => {
+      setData((prev) => {
+        const next = { ...prev, ...updates };
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => saveToDB(next), 1000);
+        return next;
+      });
+    },
+    [saveToDB],
+  );
 
   const resetData = useCallback(() => {
     setData(defaultCVData);
     setCurrentStep(0);
-    localStorage.removeItem(STEP_KEY);
+    try {
+      localStorage.removeItem(STEP_KEY_V2);
+      localStorage.removeItem(STEP_KEY_LEGACY);
+    } catch {
+      /* ignore */
+    }
     saveToDB(defaultCVData);
   }, [saveToDB]);
 
   return (
-    <CVContext.Provider value={{ data, updateData, currentStep, setCurrentStep, resetData, saving, loaded }}>
+    <CVContext.Provider
+      value={{ data, updateData, currentStep, setCurrentStep, resetData, saving, loaded }}
+    >
       {children}
     </CVContext.Provider>
   );

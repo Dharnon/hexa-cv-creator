@@ -1,4 +1,6 @@
-﻿# Mini server SAP y despliegue
+# Mini server SAP y despliegue
+
+Documentación detallada de la integración con SAP HANA (endpoints, variables de entorno, tablas y despliegue): [docs/sap-hana-integration.md](docs/sap-hana-integration.md).
 
 ## Desarrollo local
 
